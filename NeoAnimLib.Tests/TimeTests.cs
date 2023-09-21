@@ -57,6 +57,76 @@ public class TimeTests
         }
     }
 
+    [Fact]
+    public void TestClipEvents()
+    {
+        const float LENGTH = 1f;
+        // ReSharper disable once RedundantArgumentDefaultValue
+        var clip = new TestClipNode("TestClip", LENGTH);
+
+        int loopEventCount = 0;
+        // ReSharper disable once AccessToModifiedClosure
+        clip.OnLoop += _ => loopEventCount++;
+
+        // Do first step, and also check that the OnStartPlay and OnPlaying are raised.
+        using (var monitor = clip.Monitor())
+        {
+            // Moving forwards by length should loop once.
+            clip.Step(LENGTH);
+
+            monitor.Should().Raise(nameof(ClipAnimNode.OnStartPlay), "StartPlay is expected to be raised once step is called");
+            monitor.Should().Raise(nameof(ClipAnimNode.OnPlaying), "OnPlaying is expected to be raised once step is called");
+        }
+
+        // Verify.
+        clip.LocalTime.Should().Be(LENGTH);
+        loopEventCount.Should().Be(1);
+        clip.LoopCount.Should().Be(1);
+
+        // Reset.
+        clip.Reset();
+        loopEventCount = 0;
+
+        // Moving forwards by less than length should not cause a loop.
+        clip.Step(LENGTH - 0.01f);
+
+        // Verify.
+        clip.LocalTime.Should().Be(LENGTH - 0.01f);
+        loopEventCount.Should().Be(0);
+        clip.LoopCount.Should().Be(0);
+
+        // Reset.
+        clip.Reset();
+        loopEventCount = 0;
+
+        void Move(float time, int expectedLoops)
+        {
+            // Moving forwards by less than length should not cause a loop.
+            clip.Step(time);
+
+            // Verify.
+            clip.LocalTime.Should().Be(time);
+            loopEventCount.Should().Be(expectedLoops);
+            clip.LoopCount.Should().Be(expectedLoops);
+
+            // Reset.
+            clip.Reset();
+            loopEventCount = 0;
+        }
+
+        Move(0, 0);
+        Move(LENGTH * 2.5f, 2);
+        Move(LENGTH * 123.45f, 123);
+
+        Move(LENGTH *  0.5f, 0);
+        Move(LENGTH * -0.5f, 0);
+
+        Move(LENGTH * -1.0f, 1);
+        Move(LENGTH * -2.0f, 2);
+        Move(LENGTH * -2.5f, 2);
+        Move(LENGTH * -3.01f, 3);
+    }
+
     private static T RandomInRange<T>(Random rand, T min, T max) where T : IFloatingPoint<T>
     {
         T range = max - min;

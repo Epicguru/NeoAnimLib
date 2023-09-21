@@ -153,11 +153,11 @@ public class MixerTests
         {
             output.Samples.Count.Should().Be(2);
 
-            bool found = output.TryGetSample(PROP_NAME, out var outputProp);
+            bool found = output.TryGetProperty(PROP_NAME, out var outputProp);
             found.Should().Be(true);
             outputProp.Value.Should().Be(Lerp(VALUE_A, VALUE_B, 0.5f));
 
-            found = output.TryGetSample(PROP_NAME_2, out outputProp);
+            found = output.TryGetProperty(PROP_NAME_2, out outputProp);
             found.Should().Be(true);
             outputProp.Value.Should().Be(VALUE_B_2);
         }
@@ -170,12 +170,12 @@ public class MixerTests
         using (var output = mixer.Sample(new SamplerInput { MissingPropertyBehaviour = MissingPropertyBehaviour.UseKnownValue }))
         {
             output.Samples.Count.Should().Be(2);
-            bool found = output.TryGetSample(PROP_NAME, out var outputProp);
+            bool found = output.TryGetProperty(PROP_NAME, out var outputProp);
             found.Should().Be(true);
 
             outputProp.Value.Should().Be(VALUE_B);
 
-            found = output.TryGetSample(PROP_NAME_2, out outputProp);
+            found = output.TryGetProperty(PROP_NAME_2, out outputProp);
             found.Should().Be(true);
             outputProp.Value.Should().Be(VALUE_B_2);
         }

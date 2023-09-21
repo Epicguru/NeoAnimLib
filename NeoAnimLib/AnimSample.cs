@@ -7,6 +7,12 @@ using System.Text;
 
 namespace NeoAnimLib
 {
+    /// <summary>
+    /// A type that represents a collection of <see cref="AnimPropertySample"/>s.
+    /// It is commonly used to represent an animation sample at a particular point in time.
+    /// This class is automatically pooled when the <see cref="Dispose"/> method is called,
+    /// so disposing it mandatory.
+    /// </summary>
     public class AnimSample : IDisposable
     {
         /// <summary>
@@ -36,7 +42,7 @@ namespace NeoAnimLib
         /// to provide a value when a property is missing from one sample or the other.
         /// Remember to always dispose of anim samples after they are no longer needed.
         /// </summary>
-        public static AnimSample Lerp(AnimSample a, AnimSample b, DefaultValueSource defaultValueSource, float t, MissingPropertyBehaviour missingPropertyBehaviour = MissingPropertyBehaviour.UseDefaultValue)
+        public static AnimSample Lerp(AnimSample a, AnimSample b, DefaultValueSource? defaultValueSource, float t, MissingPropertyBehaviour missingPropertyBehaviour = MissingPropertyBehaviour.UseDefaultValue)
         {
             Debug.Assert(a != b, "Do not lerp between the same anim sample!");
 
@@ -61,14 +67,14 @@ namespace NeoAnimLib
                     switch (missingPropertyBehaviour)
                     {
                         case MissingPropertyBehaviour.UseDefaultValue:
-                            aSample ??= new AnimPropertySample(path, defaultValueSource(path));
-                            bSample ??= new AnimPropertySample(path, defaultValueSource(path));
+                            aSample ??= new AnimPropertySample(path, defaultValueSource!(path));
+                            bSample ??= new AnimPropertySample(path, defaultValueSource!(path));
                             output.samples.Add(path, AnimPropertySample.Lerp(aSample.Value, bSample.Value, t));
                             break;
 
                         case MissingPropertyBehaviour.UseKnownValue:
                             // ReSharper disable once PossibleInvalidOperationException
-                            output.samples.Add(path, aSample ?? bSample.Value);
+                            output.samples.Add(path, aSample ?? bSample!.Value);
                             break;
 
                         default:
@@ -99,8 +105,20 @@ namespace NeoAnimLib
             }
         }
 
+        /// <summary>
+        /// A read only collection of all properties in this sample.
+        /// </summary>
         public IReadOnlyCollection<AnimPropertySample> Samples => samples.Values;
+
+        /// <summary>
+        /// Is this sample disposed of? If true, this object should not be used, because it will be pooled and recycled.
+        /// </summary>
         public bool IsDisposed { get; private set; }
+
+        /// <summary>
+        /// The point in time that this sample was taken at.
+        /// Normally measured in seconds.
+        /// </summary>
         public float Time { get; private set; }
 
         private readonly Dictionary<string, AnimPropertySample> samples = new Dictionary<string, AnimPropertySample>(32);
@@ -110,19 +128,29 @@ namespace NeoAnimLib
 
         }
 
+        /// <inheritdoc/>
         ~AnimSample()
         {
             throw new Exception("Do not let AnimSamples be garbage collected. Dispose them to return them to the pool.");
         }
 
-        public bool TryGetSample(string propName, out AnimPropertySample sample)
+        /// <summary>
+        /// Tries to get a sample by name.
+        /// </summary>
+        public bool TryGetProperty(string propName, out AnimPropertySample sample)
             => samples.TryGetValue(propName, out sample);
 
-        public void SetSample(in AnimPropertySample sample)
+        /// <summary>
+        /// Adds or overwrites a <see cref="AnimPropertySample"/> in this sample.
+        /// </summary>
+        public void SetProperty(in AnimPropertySample sample)
         {
             samples[sample.Path] = sample;
         }
 
+        /// <summary>
+        /// Puts this sample object back in to the animation pool, and clears all properties.
+        /// </summary>
         public void Dispose()
         {
             if (IsDisposed)
@@ -138,6 +166,7 @@ namespace NeoAnimLib
             }
         }
 
+        /// <inheritdoc/>
         public override string ToString()
         {
             var str = new StringBuilder(256);

@@ -1,5 +1,8 @@
 ﻿namespace NeoAnimLib
 {
+    /// <summary>
+    /// A collection of extension methods.
+    /// </summary>
     public static class Extensions
     {
         /// <summary>

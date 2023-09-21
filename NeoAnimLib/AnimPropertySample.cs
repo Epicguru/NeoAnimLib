@@ -2,6 +2,11 @@
 
 namespace NeoAnimLib
 {
+    /// <summary>
+    /// A path-value pair.
+    /// The <see cref="Path"/> is a string that points to a particular animated property, and
+    /// the <see cref="Value"/> is the actual value of that property.
+    /// </summary>
     public readonly struct AnimPropertySample
     {
         /// <summary>
@@ -24,6 +29,13 @@ namespace NeoAnimLib
         /// </summary>
         public float Value { get; }
 
+        /// <summary>
+        /// Constructs a new <see cref="AnimPropertySample"/>
+        /// provided a path and a value. The path cannot be null.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="value"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         public AnimPropertySample(string path, float value)
         {
             Path = path ?? throw new ArgumentNullException(nameof(path));

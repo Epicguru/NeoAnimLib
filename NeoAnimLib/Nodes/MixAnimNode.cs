@@ -3,15 +3,21 @@ using System.Linq;
 
 namespace NeoAnimLib.Nodes
 {
+    /// <summary>
+    /// An animation node that mixes and blends between all child nodes.
+    /// </summary>
     public class MixAnimNode : AnimNode
     {
         /// <summary>
         /// If true, then the weights of all direct children are normalized before sampling.
+        /// Default value is false.
         /// </summary>
-        public bool NormalizeWeights { get; set; } = false;
+        public bool NormalizeWeights { get; set; }
 
+        /// <inheritdoc/>
         public MixAnimNode() { }
 
+        /// <inheritdoc/>
         public MixAnimNode(string name) : base(name) { }
 
         /// <summary>
@@ -33,6 +39,12 @@ namespace NeoAnimLib.Nodes
             }
         }
 
+        /// <summary>
+        /// Samples this animation.
+        /// All child nodes should also support sampling.
+        /// The output will be a blend of all child outputs, and the method use to blend between samples is defined by
+        /// <paramref name="input"/> as well as the individual child weights.
+        /// </summary>
         public override AnimSample Sample(in SamplerInput input)
         {
             if (NormalizeWeights)
