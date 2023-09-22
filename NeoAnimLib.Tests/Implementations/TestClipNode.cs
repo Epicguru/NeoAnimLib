@@ -36,8 +36,7 @@ internal class TestClipNode : ClipAnimNode
         }
 
         // Needs to break up the events into chunks, where the chunk is [0, Length] long.
-        // Note: -1 is because there can be an event at the very end of the previous chunk that needs to be included.
-        int startChunkIndex = (int) (start / Length) - 1;
+        int startChunkIndex = (int) (start / Length);
         int endChunkIndex = (int) (end / Length);
 
         for (int chunkIndex = startChunkIndex; chunkIndex <= endChunkIndex; chunkIndex++)
