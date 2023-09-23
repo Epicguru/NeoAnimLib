@@ -4,7 +4,7 @@ using NeoAnimLib.Tests.Implementations;
 
 namespace NeoAnimLib.Tests;
 
-public class TimeTests
+public class TimeTests : TestBase
 {
     [Theory]
     [InlineData(1, 1, 1)]
@@ -102,7 +102,8 @@ public class TimeTests
         void Move(float time, int expectedLoops)
         {
             // Moving forwards by less than length should not cause a loop.
-            clip.Step(time);
+            clip.LocalSpeed = time < 0f ? -1f : 1f;
+            clip.Step(MathF.Abs(time));
 
             // Verify.
             clip.LocalTime.Should().Be(time);

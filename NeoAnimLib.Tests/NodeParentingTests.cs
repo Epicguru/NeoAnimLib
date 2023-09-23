@@ -1,7 +1,7 @@
 
 namespace NeoAnimLib.Tests;
 
-public class NodeParentingTests
+public class NodeParentingTests : TestBase
 {
     [Fact]
     public void CheckAddAndRemove()

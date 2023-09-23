@@ -1,6 +1,6 @@
 ﻿namespace NeoAnimLib.Tests;
 
-public class PropSampleTests
+public class PropSampleTests : TestBase
 {
     [Theory]
     [InlineData(0, 1, 0)]

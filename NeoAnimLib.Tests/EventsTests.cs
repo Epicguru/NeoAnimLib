@@ -3,7 +3,7 @@ using NeoAnimLib.Tests.Implementations;
 
 namespace NeoAnimLib.Tests;
 
-public class EventsTests
+public class EventsTests : TestBase
 {
     [Theory]
     // Middle of clip event:

@@ -3,7 +3,7 @@ using NeoAnimLib.Tests.Implementations;
 
 namespace NeoAnimLib.Tests;
 
-public class MixerTests
+public class MixerTests : TestBase
 {
     private const float DEFAULT_PROP_VALUE = 20f;
 
@@ -182,8 +182,6 @@ public class MixerTests
 
         AnimSample.BorrowedCount.Should().Be(0);
     }
-
-    private static float Lerp(float a, float b, float t) => a + (b - a) * t;
 
     private static float DefaultValueProvider(string propName) => DEFAULT_PROP_VALUE;
 }

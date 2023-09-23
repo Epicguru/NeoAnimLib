@@ -89,6 +89,14 @@ namespace NeoAnimLib.Nodes
         public float DurationUnscaled { get; protected set; }
 
         /// <summary>
+        /// Returns true if this clip has ever been stepped (see <see cref="AnimNode.Step(float)"/>.
+        /// See also <see cref="AnimNode.IsEnded"/>.
+        /// Note: the clip may have 'ended' without starting if an end condition was met before the very first
+        /// first attempt to step it.
+        /// </summary>
+        public bool HasStartedPlaying { get; private set; }
+
+        /// <summary>
         /// Changes what happens when an end condition, such as <see cref="TargetLoopCount"/>, is met.
         /// </summary>
         public ClipEndBehaviour EndBehaviour { get; set; } = ClipEndBehaviour.RemoveFromParent;
@@ -129,7 +137,6 @@ namespace NeoAnimLib.Nodes
 
         private bool hasDoneEndBehaviour;
         private bool hasRaisedEndEvent;
-        private bool hasStepped;
         private bool isStopRequested;
         private int? targetLoopCount;
         private float? targetDuration;
@@ -139,15 +146,14 @@ namespace NeoAnimLib.Nodes
         /// The clip can not be null and it can not be changed after this point.
         /// </summary>
         public ClipAnimNode(IAnimClip clip)
-            : base(clip.Name ?? throw new ArgumentNullException(nameof(clip)))
+            : base(clip?.Name ?? "")
         {
-            Clip = clip;
+            Clip = clip ?? throw new ArgumentNullException(nameof(clip));
         }
 
         /// <inheritdoc/>
         public override AnimSample Sample(in SamplerInput input)
         {
-            // TODO sample the clip here.
             var sample = AnimSample.Create(LocalTime);
             Clip.Sample(sample, LocalTime);
             return sample;
@@ -161,17 +167,17 @@ namespace NeoAnimLib.Nodes
             // Check end conditions before even stepping.
             if (CheckEndConditions())
             {
+                IsEnded = true;
                 TryRaiseEndEvent();
                 TryPerformEndBehaviour();
-                IsEnded = true;
                 return;
             }
 
             // Raise playback events:
-            if (!hasStepped)
+            if (!HasStartedPlaying)
             {
+                HasStartedPlaying = true;
                 OnStartPlay?.Invoke(this);
-                hasStepped = true;
             }
             OnPlaying?.Invoke(this);
 
@@ -228,10 +234,19 @@ namespace NeoAnimLib.Nodes
             // Check end conditions again.
             if (CheckEndConditions())
             {
+                IsEnded = true;
                 TryRaiseEndEvent();
                 TryPerformEndBehaviour();
-                IsEnded = true;
             }
+        }
+
+        /// <summary>
+        /// Immediately sets the <see cref="AnimNode.LocalTime"/> to the specified value.
+        /// <b>Important:</b> this does not raise any events, change the <see cref="LoopCount"/> or <see cref="Duration"/> or trigger any end conditions.
+        /// </summary>
+        public void SetLocalTime(float time)
+        {
+            LocalTime = time;
         }
 
         /// <summary>
@@ -287,7 +302,7 @@ namespace NeoAnimLib.Nodes
         /// </summary>
         protected void TryRaiseEndEvent()
         {
-            if (hasRaisedEndEvent || !hasStepped)
+            if (hasRaisedEndEvent || !HasStartedPlaying)
                 return;
 
             OnEndPlay?.Invoke(this);
@@ -317,5 +332,8 @@ namespace NeoAnimLib.Nodes
                     throw new ArgumentOutOfRangeException(nameof(EndBehaviour), EndBehaviour.ToString());
             }
         }
+
+        /// <inheritdoc/>
+        public override string ToString() => Clip.Name ?? "ClipAnimNode (no-name clip)";
     }
 }

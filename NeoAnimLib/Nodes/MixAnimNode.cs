@@ -12,7 +12,7 @@ namespace NeoAnimLib.Nodes
         /// If true, then the weights of all direct children are normalized before sampling.
         /// Default value is false.
         /// </summary>
-        public bool NormalizeWeights { get; set; }
+        public virtual bool NormalizeWeights { get; set; }
 
         /// <inheritdoc/>
         public MixAnimNode() { }

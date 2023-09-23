@@ -1,6 +1,6 @@
 ﻿namespace NeoAnimLib.Tests;
 
-public class NodeInheritanceTests
+public class NodeInheritanceTests : TestBase
 {
     private const float TOLERANCE = 0.0001f;
 

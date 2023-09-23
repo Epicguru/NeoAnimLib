@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace NeoAnimLib
@@ -13,7 +14,7 @@ namespace NeoAnimLib
         /// <summary>
         /// The parent node. May be null (such as when this node is the root node).
         /// </summary>
-        public AnimNode? Parent { get; private set; }
+        public AnimNode? Parent { get; internal set; }
         /// <summary>
         /// The optional name of this node. Can be used for debugging.
         /// May be null.
@@ -44,7 +45,7 @@ namespace NeoAnimLib
         /// <summary>
         /// Gets a read-only list of the direct child nodes of this node: it does not include the children of those children.
         /// </summary>
-        public IReadOnlyList<AnimNode> DirectChildren => children;
+        public IReadOnlyList<AnimNode> DirectChildren => Children;
         /// <summary>
         /// Gets an enumeration of all child nodes beneath this one, in a depth-first manner.
         /// </summary>
@@ -52,7 +53,7 @@ namespace NeoAnimLib
         {
             get
             {
-                foreach (var child in children)
+                foreach (var child in Children)
                 {
                     yield return child;
                     foreach (var sub in child.AllChildren)
@@ -70,10 +71,23 @@ namespace NeoAnimLib
         public float LocalTime { get; protected set; }
         /// <summary>
         /// This is true when any end condition has been met.
+        /// Note: when this property is true, calling <see cref="Step(float)"/>
+        /// will not propagate the call to children.
         /// </summary>
         public bool IsEnded { get; protected set; }
+        /// <summary>
+        /// The index of this node within its parent's direct children list.
+        /// Will return -1 if <see cref="Parent"/> is null.
+        /// </summary>
+        public int IndexInParent => Parent == null ? -1 : Parent.Children.IndexOf(this);
 
-        private readonly List<AnimNode> children = new List<AnimNode>();
+        /// <summary>
+        /// Internal list of children.
+        /// Modify directly with care.
+        /// </summary>
+        protected readonly List<AnimNode> Children = new List<AnimNode>();
+
+        private readonly List<AnimNode> tempChildren = new List<AnimNode>();
 
         /// <summary>
         /// Default constructor. Does nothing.
@@ -97,12 +111,12 @@ namespace NeoAnimLib
         {
             if (node == null)
                 throw new ArgumentNullException(nameof(node));
-            if (children.Contains(node))
+            if (Children.Contains(node))
                 throw new Exception("Attempted to add node twice.");
             if (node.Parent != null)
                 throw new Exception("Node '{node}' already has a parent.");
 
-            children.Add(node);
+            Children.Add(node);
             node.Parent = this;
         }
 
@@ -115,15 +129,15 @@ namespace NeoAnimLib
         {
             if (node == null)
                 throw new ArgumentNullException(nameof(node));
-            if (children.Contains(node))
+            if (Children.Contains(node))
                 throw new Exception("Attempted to add node twice.");
             if (node.Parent != null)
                 throw new Exception("Node '{node}' already has a parent.");
 
-            if (index < 0 || index >= children.Count)
-                throw new IndexOutOfRangeException($"Index {index} is out of the valid range (there are {children.Count} items)");
+            if (index < 0 || index >= Children.Count)
+                throw new IndexOutOfRangeException($"Index {index} is out of the valid range (there are {Children.Count} items)");
 
-            children.Insert(index, node);
+            Children.Insert(index, node);
             node.Parent = this;
         }
 
@@ -135,11 +149,31 @@ namespace NeoAnimLib
         {
             if (node == null)
                 throw new ArgumentNullException(nameof(node));
-            if (!children.Contains(node))
+            if (!Children.Contains(node))
                 throw new Exception("Attempted to remove a node that is not a direct child of this one.");
 
-            children.Remove(node);
+            Children.Remove(node);
             node.Parent = null;
+        }
+
+        /// <summary>
+        /// Calls <see cref="Remove(AnimNode)"/> and then <see cref="Insert(int, AnimNode)"/> to
+        /// replace a direct child node with another.
+        /// If the replacement is null then this method functions the same way as <see cref="Remove(AnimNode)"/>.
+        /// <paramref name="existing"/> must not be null and it must be a <b>direct</b> child of this node.
+        /// </summary>
+        /// <param name="existing"></param>
+        /// <param name="replacement"></param>
+        public virtual void Replace(AnimNode existing, AnimNode? replacement)
+        {
+            if (existing == null)
+                throw new ArgumentNullException(nameof(existing));
+
+            int index = existing.IndexInParent;
+            Remove(existing);
+
+            if (replacement != null)
+                Insert(index, replacement);
         }
 
         /// <summary>
@@ -148,24 +182,37 @@ namespace NeoAnimLib
         /// </summary>
         public virtual void Step(float deltaTime)
         {
+            if (deltaTime < 0f)
+                throw new ArgumentOutOfRangeException(nameof(deltaTime), $"{nameof(deltaTime)} ({deltaTime}) should not be less than 0. To play an animation in reverse, change the {nameof(LocalSpeed)} property to a negative value.");
+
             LocalStep(deltaTime);
 
-            // Do not step children if removed:
+            // Do not step children if ended:
             if (IsEnded)
                 return;
 
-            for (int i = 0; i < children.Count; i++)
+            /*
+             * Can't just loop through children and step.
+             * Scenarios that need to be handled:
+             *  - When Step is called and it triggers the addition of a new child.
+             *  - When Step is called and it triggers the removal of an existing child.
+             */
+
+            tempChildren.AddRange(Children);
+
+            // Step all existing children, ensuring that we don't step any that were removed by the stepping of another.
+            foreach (AnimNode? c in tempChildren.Where(c => Children.Contains(c)))
             {
-                var child = children[i];
-
-                child.Step(deltaTime);
-
-                // Account for children being removed during the Step call:
-                if (i >= children.Count || children[i] != child)
-                {
-                    i--;
-                }
+                c.Step(deltaTime);
             }
+
+            // Step all newly added children, if any.
+            foreach (AnimNode? c in Children.Where(c => !tempChildren.Contains(c)))
+            {
+                c.Step(deltaTime);
+            }
+
+            tempChildren.Clear();
         }
 
         /// <summary>
@@ -208,7 +255,7 @@ namespace NeoAnimLib
             str.Append(' ', Depth * 2);
             str.AppendLine(Name);
 
-            foreach (var child in children)
+            foreach (var child in Children)
                 child.PrintDebugTree(str);
         }
 

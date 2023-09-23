@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
+
+[assembly: InternalsVisibleTo("NeoAnimLib.Tests")]
 
 namespace NeoAnimLib
 {
@@ -34,6 +37,8 @@ namespace NeoAnimLib
                 }
             }
         }
+
+        private static readonly Queue<AnimSample> pool = new Queue<AnimSample>(128);
 
         /// <summary>
         /// Creates a new <see cref="AnimSample"/> that is a linear lerp between the two samples <paramref name="a"/> and <paramref name="b"/>
@@ -86,8 +91,6 @@ namespace NeoAnimLib
             return output;
         }
 
-        private static readonly Queue<AnimSample> pool = new Queue<AnimSample>(128);
-
         /// <summary>
         /// Gets a new <see cref="AnimSample"/> from the pool.
         /// </summary>
@@ -103,6 +106,32 @@ namespace NeoAnimLib
                 got.Time = time;
                 return got;
             }
+        }
+
+        /// <summary>
+        /// Empties all <see cref="AnimSample"/>s from the pool and performs garbage collection.
+        /// </summary>
+        public static void ClearPool()
+        {
+            bool any = false;
+
+            lock (pool)
+            {
+                foreach (var item in pool)
+                {
+                    any = true;
+                    item.allowGC = true;
+                }
+                pool.Clear();
+            }
+
+            if (any)
+                GC.Collect();
+        }
+
+        internal static void ResetBorrowedCount()
+        {
+            BorrowedCount = 0;
         }
 
         /// <summary>
@@ -122,6 +151,7 @@ namespace NeoAnimLib
         public float Time { get; private set; }
 
         private readonly Dictionary<string, AnimPropertySample> samples = new Dictionary<string, AnimPropertySample>(32);
+        private bool allowGC = false;
 
         private AnimSample()
         {
@@ -131,7 +161,8 @@ namespace NeoAnimLib
         /// <inheritdoc/>
         ~AnimSample()
         {
-            throw new Exception("Do not let AnimSamples be garbage collected. Dispose them to return them to the pool.");
+            if (!allowGC)
+                throw new Exception("Do not let AnimSamples be garbage collected. Dispose them to return them to the pool.");
         }
 
         /// <summary>
@@ -162,7 +193,9 @@ namespace NeoAnimLib
             lock (pool)
             {
                 pool.Enqueue(this);
-                BorrowedCount--;
+
+                if (BorrowedCount > 0)
+                    BorrowedCount--;
             }
         }
 
