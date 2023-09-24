@@ -20,8 +20,8 @@ public class TransitionTests : TestBase
 
         TransitionNode node = new TransitionNode(clipA, clipB);
 
-        var from = node.FromClip as ClipAnimNode;
-        var to = node.ToClip as ClipAnimNode;
+        ClipAnimNode from = (node.FromNode as ClipAnimNode)!;
+        ClipAnimNode to = (node.ToNode as ClipAnimNode)!;
         from.Should().NotBeNull();
         to.Should().NotBeNull();
 
@@ -82,8 +82,8 @@ public class TransitionTests : TestBase
             CheckBlend(t, Lerp(A, B, t));
         }
 
-        node.FromClip.Should().Be(from);
-        node.ToClip.Should().Be(to);
+        node.FromNode.Should().Be(from);
+        node.ToNode.Should().Be(to);
     }
 
     [Theory]
@@ -98,7 +98,6 @@ public class TransitionTests : TestBase
     [InlineData(1f, 2f, 1f, false, 0.5f)]
     [InlineData(1f, 2f, 2f, false, 1f)]
     [InlineData(1f, 1f, -1f, false, 1f)]
-    [InlineData(1f, 1f, -1f, false, 1f)]
     [InlineData(1f, 1f, 0.5f, false, 0.5f)]
     [InlineData(1f, 0.1f, 1f, false, 1)]
     public void TestTransitionDuration(float deltaTime, float duration, float speed, bool unscaled, float expectedBlend)
@@ -107,8 +106,8 @@ public class TransitionTests : TestBase
         var clipB = new TestClip("ClipB");
         TransitionNode node = new TransitionNode(clipA, clipB);
 
-        var from = node.FromClip as ClipAnimNode;
-        var to = node.ToClip as ClipAnimNode;
+        ClipAnimNode from = (node.FromNode as ClipAnimNode)!;
+        ClipAnimNode to = (node.ToNode as ClipAnimNode)!;
         from.Should().NotBeNull();
         to.Should().NotBeNull();
 
@@ -193,8 +192,8 @@ public class TransitionTests : TestBase
         var clipB = new TestClip("ClipB") { Length = 1 };
 
         TransitionNode node = new TransitionNode(clipA, clipB);
-        ClipAnimNode from = (node.FromClip as ClipAnimNode)!;
-        ClipAnimNode to = (node.ToClip as ClipAnimNode)!;
+        ClipAnimNode from = (node.FromNode as ClipAnimNode)!;
+        ClipAnimNode to = (node.ToNode as ClipAnimNode)!;
 
         to.Should().NotBeNull();
         to.Clip.Should().Be(clipB);
@@ -208,9 +207,9 @@ public class TransitionTests : TestBase
         from.IsEnded.Should().Be(shouldReplace);
         if (shouldReplace)
         {
-            node.FromClip.Should().NotBe(from);
-            node.FromClip.Should().BeOfType<ClipAnimNode>();
-            ClipAnimNode newFrom = (node.FromClip as ClipAnimNode)!;
+            node.FromNode.Should().NotBe(from);
+            node.FromNode.Should().BeOfType<ClipAnimNode>();
+            ClipAnimNode newFrom = (node.FromNode as ClipAnimNode)!;
             newFrom.Clip.Should().BeOfType<SnapshotAnimClip>();
 
             using var sample = newFrom.Sample(new SamplerInput { MissingPropertyBehaviour = MissingPropertyBehaviour.UseKnownValue });
@@ -220,10 +219,113 @@ public class TransitionTests : TestBase
         }
         else
         {
-            node.FromClip.Should().Be(from);
+            node.FromNode.Should().Be(from);
         }
 
         node.AllChildren.Should().HaveCount(2);
-        node.ToClip.Should().Be(to);
+        node.ToNode.Should().Be(to);
+    }
+
+    [Theory]
+    [InlineData(0f, null, false, TransitionEndBehaviour.ReplaceInParent)]
+    [InlineData(1f, 1f, true, TransitionEndBehaviour.ReplaceInParent)]
+    [InlineData(1.1f, 1f, true, TransitionEndBehaviour.ReplaceInParent)]
+    [InlineData(1f, 1f, true, TransitionEndBehaviour.Nothing)]
+    [InlineData(0.99f, 1f, false, TransitionEndBehaviour.ReplaceInParent)]
+    [InlineData(2f, 1f, true, TransitionEndBehaviour.ReplaceInParent)]
+    [InlineData(2f, 0.1f, true, TransitionEndBehaviour.ReplaceInParent)]
+    public void TestTransitionEndBehaviour(float step, float? duration, bool shouldEnd, TransitionEndBehaviour endBehaviour)
+    {
+        var clipA = new TestClip("ClipA");
+        var clipB = new TestClip("ClipB");
+
+        TransitionNode node = new TransitionNode(clipA, clipB)
+        {
+            TransitionDuration = duration,
+            EndBehaviour = endBehaviour
+        };
+
+        AnimNode parent = new AnimNode("Parent");
+        parent.Add(node);
+
+        var from = node.FromNode;
+        var to = node.ToNode;
+
+        node.Parent.Should().Be(parent);
+        from.Parent.Should().Be(node);
+        from.Depth.Should().Be(2);
+        to.Depth.Should().Be(2);
+
+        using var monitor = node.Monitor();
+
+        parent.Step(step);
+
+        from.LocalTime.Should().Be(step);
+        to.LocalTime.Should().Be(step);
+        node.IsEnded.Should().Be(shouldEnd);
+
+        if (shouldEnd)
+            monitor.Should().Raise(nameof(TransitionNode.OnTransitionEnd));
+        else
+            monitor.Should().NotRaise(nameof(TransitionNode.OnTransitionEnd));
+
+        switch (endBehaviour)
+        {
+            case TransitionEndBehaviour.ReplaceInParent when shouldEnd:
+                parent.DirectChildren.Should().ContainSingle();
+                parent.AllChildren.Should().ContainSingle();
+                parent.DirectChildren.First().Should().Be(to);
+                to.Parent.Should().Be(parent);
+                node.Parent.Should().BeNull();
+                break;
+
+            case TransitionEndBehaviour.Nothing:
+                parent.DirectChildren.Should().ContainSingle();
+                parent.DirectChildren.First().Should().Be(node);
+                node.Parent.Should().Be(parent);
+                break;
+        }
+    }
+
+    [Fact]
+    public void TransitionStopTests()
+    {
+        var clipA = new TestClip("ClipA");
+        clipA.Samples.Add(new AnimPropertySample("A", 10f));
+        clipA.Samples.Add(new AnimPropertySample("B", 5f));
+        var clipB = new TestClip("ClipB");
+        clipB.Samples.Add(new AnimPropertySample("A", 20f));
+
+        TransitionNode node = new TransitionNode(clipA, clipB)
+        {
+            TransitionDuration = 1f,
+            EndBehaviour = TransitionEndBehaviour.ReplaceInParent
+        };
+
+        AnimNode parent = new AnimNode("Parent");
+        parent.Add(node);
+
+        node.Step(0.5f);
+        node.IsEnded.Should().BeFalse();
+
+        node.Stop();
+        node.IsEnded.Should().BeTrue();
+
+        parent.AllChildren.Should().ContainSingle();
+        var child = parent.DirectChildren[0];
+
+        child.Should().BeOfType<ClipAnimNode>();
+        var clip = (ClipAnimNode)child;
+
+        clip.Clip.Should().BeOfType<SnapshotAnimClip>();
+
+        using var sample = clip.Sample(new SamplerInput { MissingPropertyBehaviour = MissingPropertyBehaviour.UseKnownValue });
+        sample.Samples.Should().HaveCount(2);
+
+        sample.TryGetProperty("A", out var a).Should().BeTrue();
+        sample.TryGetProperty("B", out var b).Should().BeTrue();
+
+        a.Value.Should().Be(15f);
+        b.Value.Should().Be(5f);
     }
 }

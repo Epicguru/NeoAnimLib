@@ -172,6 +172,20 @@ namespace NeoAnimLib
             => samples.TryGetValue(propName, out sample);
 
         /// <summary>
+        /// Gets a property value by attempting to find the property in this sample (using <see cref="TryGetProperty(string, out AnimPropertySample)"/>),
+        /// and if it is not found then <paramref name="defaultValueSource"/> is used to get the default value for that property.
+        /// </summary>
+        public float GetPropertyValue(string propName, DefaultValueSource defaultValueSource)
+            => !TryGetProperty(propName, out var sample) ? defaultValueSource(propName) : sample.Value;
+        
+        /// <summary>
+        /// Gets a property value by attempting to find the property in this sample (using <see cref="TryGetProperty(string, out AnimPropertySample)"/>),
+        /// and if it is not found then <paramref name="defaultValue"/> is returned.
+        /// </summary>
+        public float GetPropertyValue(string propName, float defaultValue)
+            => !TryGetProperty(propName, out var sample) ? defaultValue : sample.Value;
+
+        /// <summary>
         /// Adds or overwrites a <see cref="AnimPropertySample"/> in this sample.
         /// </summary>
         public void SetProperty(in AnimPropertySample sample)

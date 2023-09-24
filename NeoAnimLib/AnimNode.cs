@@ -1,6 +1,8 @@
 ﻿
+using NeoAnimLib.Nodes;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -71,8 +73,6 @@ namespace NeoAnimLib
         public float LocalTime { get; protected set; }
         /// <summary>
         /// This is true when any end condition has been met.
-        /// Note: when this property is true, calling <see cref="Step(float)"/>
-        /// will not propagate the call to children.
         /// </summary>
         public bool IsEnded { get; protected set; }
         /// <summary>
@@ -134,7 +134,7 @@ namespace NeoAnimLib
             if (node.Parent != null)
                 throw new Exception("Node '{node}' already has a parent.");
 
-            if (index < 0 || index >= Children.Count)
+            if (index < 0 || index > Children.Count)
                 throw new IndexOutOfRangeException($"Index {index} is out of the valid range (there are {Children.Count} items)");
 
             Children.Insert(index, node);
@@ -187,10 +187,6 @@ namespace NeoAnimLib
 
             LocalStep(deltaTime);
 
-            // Do not step children if ended:
-            if (IsEnded)
-                return;
-
             /*
              * Can't just loop through children and step.
              * Scenarios that need to be handled:
@@ -206,11 +202,15 @@ namespace NeoAnimLib
                 c.Step(deltaTime);
             }
 
-            // Step all newly added children, if any.
-            foreach (AnimNode? c in Children.Where(c => !tempChildren.Contains(c)))
-            {
-                c.Step(deltaTime);
-            }
+            /*
+             * I have decided not to step newly added children, as it seemed to cause more issues than benefits,
+             * with nodes being stepped twice if they were already part of the graph as a descendent.
+             */
+            // Step all newly added children, if any:
+            //foreach (AnimNode? c in Children.Where(c => !tempChildren.Contains(c)))
+            //{
+            //    c.Step(deltaTime);
+            //}
 
             tempChildren.Clear();
         }
@@ -253,13 +253,41 @@ namespace NeoAnimLib
         public void PrintDebugTree(StringBuilder str)
         {
             str.Append(' ', Depth * 2);
-            str.AppendLine(Name);
+            str.AppendLine($"[{GetType().Name}] {this}");
 
             foreach (var child in Children)
                 child.PrintDebugTree(str);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public void TransitionTo(AnimNode? other, float duration)
+        {
+            // TODO it is probably a good idea to allow other to be null
+            // which would transition to a blank state i.e. a clip that returns no samples.
+
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
+            if (duration <= 0f)
+                throw new ArgumentOutOfRangeException(nameof(duration), duration.ToString(CultureInfo.InvariantCulture));
+
+            if (Parent == null)
+                throw new InvalidOperationException("Can only call TransitionTo if this node has a parent.");
+
+            if (other.Parent != null)
+                throw new InvalidOperationException("Other must have a null parent.");
+
+            var transitionNode = new TransitionNode()
+            {
+                TransitionDuration = duration
+            };
+            Parent.Replace(this, transitionNode);
+            transitionNode.FromNode = this;
+            transitionNode.ToNode = other;
+        }
+
         /// <inheritdoc/>
-        public override string ToString() => Name ?? "";
+        public override string ToString() => Name ?? $"<no-name {GetType()}>";
     }
 }

@@ -3,7 +3,7 @@
 namespace NeoAnimLib.Nodes
 {
     /// <summary>
-    /// Represents an animation node that does not support adding, inserting or removing
+    /// An animation node that does not support adding, inserting or removing
     /// child nodes.
     /// </summary>
     public abstract class LeafAnimNode : AnimNode

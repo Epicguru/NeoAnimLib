@@ -18,6 +18,4 @@ internal class TestClipNode : ClipAnimNode
         LoopCount = 0;
         LastLoopIndex = 0;
     }
-
-    public void SetLocalTime(float time) => LocalTime = time;
 }

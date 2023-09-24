@@ -28,13 +28,14 @@ namespace NeoAnimLib.Nodes
         }
 
         /// <summary>
-        /// 
+        /// The <see cref="AnimNode"/> that is being transitioned away from.
         /// </summary>
         public AnimNode FromNode
         {
             get => Children[0];
-            protected set
+            set
             {
+                Debug.Assert(value != null);
                 Debug.Assert(value.Parent == null);
                 value.Parent = this;
                 Children[0] = value;
@@ -42,13 +43,14 @@ namespace NeoAnimLib.Nodes
         }
 
         /// <summary>
-        /// 
+        /// The <see cref="AnimNode"/> that is being transitioned towards.
         /// </summary>
         public AnimNode ToNode
         {
             get => Children[1];
-            protected set
+            set
             {
+                Debug.Assert(value != null);
                 Debug.Assert(value.Parent == null);
                 value.Parent = this;
                 Children[1] = value;
@@ -116,7 +118,7 @@ namespace NeoAnimLib.Nodes
         /// only <see cref="TransitionDuration"/> and <see cref="TransitionDurationUnscaled"/>
         /// can be set to trigger the end.
         /// </summary>
-        public TransitionEndBehaviour EndBehaviour { get; set; } = TransitionEndBehaviour.ReplaceWithClip;
+        public TransitionEndBehaviour EndBehaviour { get; set; } = TransitionEndBehaviour.ReplaceInParent;
 
         /// <summary>
         /// The event raised when the end of the transition is reached, at which point the behaviour described in
@@ -141,9 +143,18 @@ namespace NeoAnimLib.Nodes
         }
 
         /// <summary>
-        /// Adds two null objects to the Children list.
+        /// Creates a new transition node based on two nodes.
         /// </summary>
-        protected TransitionNode()
+        public TransitionNode(AnimNode fromNode, AnimNode toNode) : this()
+        {
+            FromNode = fromNode;
+            ToNode = toNode;
+        }
+
+        /// <summary>
+        /// Creates an empty transition node.
+        /// </summary>
+        public TransitionNode()
         {
             Children.Add(null!);
             Children.Add(null!);
@@ -208,6 +219,8 @@ namespace NeoAnimLib.Nodes
         /// <inheritdoc/>
         public override AnimSample Sample(in SamplerInput input)
         {
+            EnsureChildrenNotNull();
+
             FromNode.LocalWeight = 1f - Blend;
             ToNode.LocalWeight = Blend;
 
@@ -217,6 +230,8 @@ namespace NeoAnimLib.Nodes
         /// <inheritdoc/>
         protected override void LocalStep(float deltaTime)
         {
+            EnsureChildrenNotNull();
+
             UpdateTransitioning(deltaTime);
 
             if (!IsEnded && CheckEndConditions())
@@ -225,6 +240,12 @@ namespace NeoAnimLib.Nodes
                 TryPerformEndBehaviour();
                 IsEnded = true;
             }
+        }
+
+        private void EnsureChildrenNotNull()
+        {
+            if (FromNode == null || ToNode == null)
+                throw new InvalidOperationException("Cannot Step or Sample if there are not exactly 2 child nodes.");
         }
 
         private bool CheckEndConditions()
@@ -258,11 +279,33 @@ namespace NeoAnimLib.Nodes
         {
             switch (EndBehaviour)
             {
-                case TransitionEndBehaviour.ReplaceWithClip:
-                    // TODO implement me.
+                case TransitionEndBehaviour.ReplaceInParent:
                     if (Parent == null)
                         return;
 
+                    bool replaceWithSnapshot = Blend < 1f;
+
+                    if (replaceWithSnapshot)
+                    {
+                        using var sample = Sample(new SamplerInput
+                        {
+                            MissingPropertyBehaviour = MissingPropertyBehaviour.UseKnownValue
+                        });
+
+                        var snapshot = new SnapshotAnimClip(sample, $"Snapshot of {this}");
+                        var node = new ClipAnimNode(snapshot);
+                        Parent.Replace(this, node);
+                    }
+                    else
+                    {
+                        var to = ToNode;
+                        to.Parent = null;
+                        Parent.Replace(this, to);
+                    }
+                    break;
+
+                case TransitionEndBehaviour.RemoveFromParent:
+                    Parent?.Remove(this);
                     break;
 
                 case TransitionEndBehaviour.Nothing:
@@ -272,6 +315,7 @@ namespace NeoAnimLib.Nodes
                     throw new ArgumentOutOfRangeException(nameof(EndBehaviour), EndBehaviour.ToString());
             }
         }
+
 
         /// <summary>
         /// Increments <see cref="Blend"/> based on the values of
