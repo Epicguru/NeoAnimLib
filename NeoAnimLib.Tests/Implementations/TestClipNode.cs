@@ -16,6 +16,7 @@ internal class TestClipNode : ClipAnimNode
     {
         LocalTime = 0;
         LoopCount = 0;
+        Duration = 0;
         LastLoopIndex = 0;
     }
 }

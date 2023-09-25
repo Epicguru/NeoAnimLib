@@ -9,7 +9,7 @@ public static class Animations
     {
         Name = "Vertical Hover",
         Length = 1f,
-        SampleAction = (sample, time) =>
+        SampleAction = (sample, time, input) =>
         {
             float y = MathF.Sin(time * MathF.PI) * 200f + 200f;
             sample.SetProperty(new AnimPropertySample("Y", y));
@@ -20,7 +20,7 @@ public static class Animations
     {
         Name = "Horizontal Hover",
         Length = 1f,
-        SampleAction = (sample, time) =>
+        SampleAction = (sample, time, input) =>
         {
             float x = MathF.Cos(time * MathF.PI) * 200f + 200f;
             sample.SetProperty(new AnimPropertySample("X", x));
@@ -37,11 +37,11 @@ public static class Animations
 
 public class MonoClip : IAnimClip
 {
-    public required Action<AnimSample, float> SampleAction { get; init; }
+    public required Action<AnimSample, float, SamplerInput> SampleAction { get; init; }
     public required string Name { get; init; }
     public required float Length { get; init; }
 
-    public void Sample(AnimSample sample, float time) => SampleAction(sample, time);
+    public void Sample(AnimSample sample, float time, in SamplerInput input) => SampleAction(sample, time, input);
 
     public IEnumerable<AnimEvent> GetEventsInRange(float startTime, float endTime)
     {

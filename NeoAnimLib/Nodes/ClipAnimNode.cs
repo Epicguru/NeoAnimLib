@@ -6,7 +6,7 @@ namespace NeoAnimLib.Nodes
     /// <summary>
     /// An anim node that represents an animation clip.
     /// </summary>
-    public class ClipAnimNode : LeafAnimNode
+    public class ClipAnimNode : LeafAnimNode, IHasEndEvent, IHasTimeToEnd
     {
         /// <summary>
         /// The length of the animation clip: shorthand for <see cref="Clip"/>.Length;
@@ -108,8 +108,8 @@ namespace NeoAnimLib.Nodes
         public event Action<ClipAnimNode>? OnStartPlay;
 
         /// <summary>
-        /// Invoked once per frame while this clip is playing,
-        /// even if it's <see cref="AnimNode.Speed"/> or <see cref="AnimNode.Weight"/> are 0.
+        /// Invoked once per <see cref="AnimNode.Step"/> call while this clip is playing,
+        /// even if its <see cref="AnimNode.Speed"/> or <see cref="AnimNode.Weight"/> are 0.
         /// </summary>
         public event Action<ClipAnimNode>? OnPlaying;
 
@@ -155,7 +155,7 @@ namespace NeoAnimLib.Nodes
         public override AnimSample Sample(in SamplerInput input)
         {
             var sample = AnimSample.Create(LocalTime);
-            Clip.Sample(sample, LocalTime);
+            Clip.Sample(sample, LocalTime, input);
             return sample;
         }
 
@@ -211,7 +211,7 @@ namespace NeoAnimLib.Nodes
                 float expected = LocalTime + deltaTime;
                 while (deltaTime > 0 ? toDo > 0 : toDo < 0)
                 {
-                    float toStep = MathF.Min(MathF.Abs(toDo), Clip.Length);
+                    float toStep = MathF.Min(MathF.Abs(toDo), Length);
                     if (toDo < 0)
                         toStep = -toStep;
 
@@ -219,7 +219,7 @@ namespace NeoAnimLib.Nodes
                     LocalTime += toStep;
 
                     // Update looping.
-                    int loopIndex = (int)(LocalTime / Clip.Length);
+                    int loopIndex = (int)(LocalTime / Length);
                     if (loopIndex != LastLoopIndex)
                     {
                         LastLoopIndex = loopIndex;
@@ -268,7 +268,7 @@ namespace NeoAnimLib.Nodes
         /// and triggers the behaviour defined by <see cref="EndBehaviour"/>
         /// (which is removing this clip from its parent by default).
         /// </summary>
-        public virtual void Stop()
+        public void Stop()
         {
             isStopRequested = true;
             TryRaiseEndEvent();
@@ -279,7 +279,7 @@ namespace NeoAnimLib.Nodes
         /// <summary>
         /// Returns true if any end condition has been met.
         /// </summary>
-        protected virtual bool CheckEndConditions()
+        protected bool CheckEndConditions()
         {
             // Manual stop requested:
             if (isStopRequested)
@@ -334,6 +334,52 @@ namespace NeoAnimLib.Nodes
         }
 
         /// <inheritdoc/>
+        public void RegisterEndEvent(Action<AnimNode> endEvent)
+        {
+            OnEndPlay += endEvent ?? throw new ArgumentNullException(nameof(endEvent));
+        }
+
+        /// <inheritdoc/>
+        public void UnRegisterEndEvent(Action<AnimNode> endEvent)
+        {
+            OnEndPlay -= endEvent ?? throw new ArgumentNullException(nameof(endEvent));
+        }
+
+        /// <inheritdoc/>
         public override string ToString() => Clip.Name ?? "ClipAnimNode (no-name clip)";
+
+        /// <inheritdoc/>
+        public float? GetTimeToEnd()
+        {
+            float? duration = GetTTEFromDuration();
+            float? loop = GetTTEFromLoops();
+
+            if (loop == null && duration == null)
+                return null;
+
+            if (loop != null && duration != null)
+                return MathF.Max(MathF.Min(loop.Value, duration.Value), 0f);
+            
+            return MathF.Max((loop ?? duration)!.Value, 0f);
+        }
+
+        private float? GetTTEFromDuration()
+        {
+            return TargetDuration - Duration;
+        }
+
+        private float? GetTTEFromLoops()
+        {
+            if (TargetLoopCount == null)
+                return null;
+
+            float targetLength = TargetLoopCount.Value * Length;
+
+            float doneLength = LoopCount * Length;
+            int step = (int)(LocalTime / Length);
+            doneLength += MathF.Abs(step * Length - LocalTime);
+
+            return targetLength - doneLength;
+        }
     }
 }

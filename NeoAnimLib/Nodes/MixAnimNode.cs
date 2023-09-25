@@ -41,20 +41,40 @@ namespace NeoAnimLib.Nodes
 
         /// <summary>
         /// Samples this animation.
+        /// May return null.
         /// All child nodes should also support sampling.
         /// The output will be a blend of all child outputs, and the method use to blend between samples is defined by
         /// <paramref name="input"/> as well as the individual child weights.
         /// </summary>
-        public override AnimSample Sample(in SamplerInput input)
+        public override AnimSample? Sample(in SamplerInput input)
         {
             if (NormalizeWeights)
                 NormalizeChildWeights();
 
-            var output = AnimSample.Create(LocalTime);
+            AnimSample? output = null;
 
             foreach (var child in DirectChildren)
             {
+                if (output == null)
+                {
+                    // When in 'use default value' mode, and there is a single child, 
+                    // it is possible for the default value to not be sampled properly unless
+                    // we insert an initial blank sample as the starting point before sampling children.
+                    if (input.MissingPropertyBehaviour == MissingPropertyBehaviour.UseDefaultValue)
+                    {
+                        output = AnimSample.Create(LocalTime);
+                    }
+                    else
+                    {
+                        output = child.Sample(input);
+                        continue;
+                    }
+                }
+
                 using var childSample = child.Sample(input);
+
+                if (childSample == null)
+                    continue;
 
                 var temp = output;
                 output = AnimSample.Lerp(output, childSample, input.DefaultValueSource, child.LocalWeight, input.MissingPropertyBehaviour);

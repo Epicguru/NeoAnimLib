@@ -38,15 +38,16 @@ namespace NeoAnimLib.Clips
         /// <summary>
         /// Creates a new snapshot clip based on a sample object. The sample must not be null.
         /// This copies all the <see cref="AnimPropertySample"/> from <see cref="AnimSample.Samples"/>.
+        /// If <paramref name="sample"/> is null, then this clip will just be empty with no samples.
         /// </summary>
-        public SnapshotAnimClip(AnimSample sample, string name = "")
+        public SnapshotAnimClip(AnimSample? sample, string name = "")
         {
             Name = name;
-            samples = new List<AnimPropertySample>(sample.Samples);
+            samples = new List<AnimPropertySample>(sample?.Samples ?? Array.Empty<AnimPropertySample>());
         }
 
         /// <inheritdoc/>
-        public void Sample(AnimSample sample, float time)
+        public void Sample(AnimSample sample, float time, in SamplerInput input)
         {
             foreach (var s in samples)
                 sample.SetProperty(s);

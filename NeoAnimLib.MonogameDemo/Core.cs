@@ -79,9 +79,13 @@ public class Core : Game
         var kState = Keyboard.GetState();
         if (kState.IsKeyDown(Keys.Space) && oldKState.IsKeyUp(Keys.Space))
         {
-            var firstChild = rootNode.DirectChildren[0];
-            firstChild.TransitionTo(MakeReplacement(), 0.5f);
-            flipFlop = !flipFlop;
+            var first  = new ClipAnimNode(Animations.HorizontalHover) { TargetDuration = 3f };
+            var second = new ClipAnimNode(Animations.VerticalHover);
+
+            first.ContinueWith(second, 1f);
+
+            rootNode.Clear();
+            rootNode.Add(first);
         }
 
         oldKState = kState;
@@ -89,20 +93,6 @@ public class Core : Game
         rootNode.LocalSpeed = 1f;
 
         rootNode.Step((float)gameTime.ElapsedGameTime.TotalSeconds);
-    }
-
-    private ClipAnimNode MakeReplacement()
-    {
-        var replacement = new ClipAnimNode(flipFlop ? Animations.VerticalHover : Animations.HorizontalHover);
-        replacement.OnLoop += c =>
-        {
-            if (c.LoopCount >= 2f)
-            {
-                flipFlop = !flipFlop;
-                c.TransitionTo(MakeReplacement(), 0.5f);
-            }
-        };
-        return replacement;
     }
 
     protected override void Draw(GameTime gameTime)
@@ -129,6 +119,9 @@ public class Core : Game
             MissingPropertyBehaviour = MissingPropertyBehaviour.UseDefaultValue,
             DefaultValueSource = Animations.DefaultValueSource
         });
+
+        if (sample == null)
+            return;
 
         float x = sample.GetPropertyValue("X", Animations.DefaultValueSource);
         float y = sample.GetPropertyValue("Y", Animations.DefaultValueSource);

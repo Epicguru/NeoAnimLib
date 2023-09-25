@@ -23,7 +23,8 @@ namespace NeoAnimLib
         /// </summary>
         /// <param name="sample">The sample that is written to.</param>
         /// <param name="time">The time, in seconds, that the clip should be sampled at. May be less than 0 or more than <see cref="Length"/>.</param>
-        void Sample(AnimSample sample, float time);
+        /// <param name="input">The <see cref="SamplerInput"/> that was passed in to the <see cref="AnimNode.Sample"/> method.</param>
+        void Sample(AnimSample sample, float time, in SamplerInput input);
 
         /// <summary>
         /// Should get an enumeration of events that are at the between the <paramref name="startTime"/> (inclusive) and <paramref name="endTime"/> (exclusive).

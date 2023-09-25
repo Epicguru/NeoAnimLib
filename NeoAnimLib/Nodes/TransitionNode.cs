@@ -12,11 +12,11 @@ namespace NeoAnimLib.Nodes
     /// <item>It always has exactly two child nodes, <see cref="FromNode"/> and <see cref="ToNode"/>. Neither can ever be null.</item>
     /// <item>Whenever <see cref="Remove(AnimNode)"/> is called, the specified node is replaced with a <see cref="SnapshotAnimClip"/> that captures the state of the node being removed.</item>
     /// <item><see cref="Blend"/> must be used to control the lerp between the <see cref="FromNode"/> and <see cref="ToNode"/>.
-    /// It can be edited manually or <see cref="TransitionDuration"/> and <see cref="TransitionDurationUnscaled"/> can be used
+    /// It can be edited manually or <see cref="TransitionDuration"/> can be used
     /// to automatically advance <see cref="Blend"/> when <see cref="AnimNode.Step(float)"/> is called.</item>
     /// </list>
     /// </summary>
-    public class TransitionNode : MixAnimNode
+    public class TransitionNode : MixAnimNode, IHasEndEvent, IHasTimeToEnd
     {
         /// <summary>
         /// Always false on <see cref="TransitionNode"/> - it cannot be assigned to either.
@@ -71,52 +71,22 @@ namespace NeoAnimLib.Nodes
         /// that this transition will last for. i.e. it will take <see cref="TransitionDuration"/> seconds to increment
         /// <see cref="Blend"/> from 0 to 1.
         /// The assigned value cannot be less than 0.
-        /// Assigning this property to a non-null value will automatically set <see cref="TransitionDurationUnscaled"/> to null.
         /// </summary>
         public float? TransitionDuration
         {
             get => transitionDuration;
             set
             {
-                if (value != null)
-                {
-                    if (value < 0)
-                        throw new ArgumentOutOfRangeException(nameof(value), "Can not set transition duration to less than 0.");
-
-                    TransitionDurationUnscaled = null;
-                }
+                if (value < 0)
+                    throw new ArgumentOutOfRangeException(nameof(value), "Can not set transition duration to less than 0.");
                 transitionDuration = value;
-            }
-        }
-
-        /// <summary>
-        /// The transition duration, in seconds (<b>not</b> affected by <see cref="AnimNode.Speed"/>),
-        /// that this transition will last for. i.e. it will take <see cref="TransitionDuration"/> seconds to increment
-        /// <see cref="Blend"/> from 0 to 1.
-        /// The assigned value cannot be less than 0.
-        /// Assigning this property to a non-null value will automatically set <see cref="TransitionDuration"/> to null.
-        /// </summary>
-        public float? TransitionDurationUnscaled
-        {
-            get => transitionDurationUnscaled;
-            set
-            {
-                if (value != null)
-                {
-                    if (value < 0)
-                        throw new ArgumentOutOfRangeException(nameof(value), "Can not set transition duration to less than 0.");
-
-                    TransitionDuration = null;
-                }
-                transitionDurationUnscaled = value;
             }
         }
 
         /// <summary>
         /// The behaviour which occurs when the end of the transition it met.
         /// Note: manually changing <see cref="Blend"/> will not trigger the end event,
-        /// only <see cref="TransitionDuration"/> and <see cref="TransitionDurationUnscaled"/>
-        /// can be set to trigger the end.
+        /// only <see cref="TransitionDuration"/> can be set to trigger the end.
         /// </summary>
         public TransitionEndBehaviour EndBehaviour { get; set; } = TransitionEndBehaviour.ReplaceInParent;
 
@@ -124,13 +94,11 @@ namespace NeoAnimLib.Nodes
         /// The event raised when the end of the transition is reached, at which point the behaviour described in
         /// <see cref="EndBehaviour"/> is triggered after this event is raised.
         /// Note: manually changing <see cref="Blend"/> will not trigger the end event,
-        /// only <see cref="TransitionDuration"/> and <see cref="TransitionDurationUnscaled"/>
-        /// can be set to trigger the end.
+        /// only <see cref="TransitionDuration"/> can be set to trigger the end.
         /// </summary>
         public event Action<TransitionNode>? OnTransitionEnd;
 
         private float? transitionDuration;
-        private float? transitionDurationUnscaled;
 
         /// <summary>
         /// Creates a new transition node based on two clips.
@@ -217,7 +185,7 @@ namespace NeoAnimLib.Nodes
         }
 
         /// <inheritdoc/>
-        public override AnimSample Sample(in SamplerInput input)
+        public override AnimSample? Sample(in SamplerInput input)
         {
             EnsureChildrenNotNull();
 
@@ -319,29 +287,13 @@ namespace NeoAnimLib.Nodes
 
         /// <summary>
         /// Increments <see cref="Blend"/> based on the values of
-        /// <see cref="TransitionDuration"/> or <see cref="TransitionDurationUnscaled"/>.
+        /// <see cref="TransitionDuration"/>.
         /// If both durations are null, then this method does nothing.
         /// <see cref="Blend"/> will not be incremented over 1 by this method.
         /// </summary>
         protected void UpdateTransitioning(float deltaTime)
         {
-            if (TransitionDurationUnscaled != null)
-            {
-                bool instant = TransitionDurationUnscaled.Value == 0;
-                if (instant)
-                {
-                    if (deltaTime != 0 && Blend < 1)
-                        Blend = 1;
-                }
-                else
-                {
-                    if (Blend < 1)
-                        Blend += (1f / TransitionDurationUnscaled.Value) * deltaTime;
-                    if (Blend > 1)
-                        Blend = 1;
-                }
-            }
-            else if (TransitionDuration != null)
+            if (TransitionDuration != null)
             {
                 bool instant = TransitionDuration.Value == 0;
                 if (instant)
@@ -357,6 +309,29 @@ namespace NeoAnimLib.Nodes
                         Blend = 1;
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        public void RegisterEndEvent(Action<AnimNode> endEvent)
+        {
+            OnTransitionEnd += endEvent ?? throw new ArgumentNullException(nameof(endEvent));
+        }
+
+        /// <inheritdoc/>
+        public void UnRegisterEndEvent(Action<AnimNode> endEvent)
+        {
+            OnTransitionEnd -= endEvent ?? throw new ArgumentNullException(nameof(endEvent));
+        }
+
+        /// <inheritdoc/>
+        public float? GetTimeToEnd()
+        {
+            float? doneTime = Blend * TransitionDuration;
+            float? tte = TransitionDuration - doneTime;
+            if (tte == null)
+                return null;
+
+            return MathF.Max(tte.Value, 0f);
         }
 
         /// <inheritdoc/>

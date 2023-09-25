@@ -2,6 +2,7 @@
 using NeoAnimLib.Nodes;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -82,12 +83,23 @@ namespace NeoAnimLib
         public int IndexInParent => Parent == null ? -1 : Parent.Children.IndexOf(this);
 
         /// <summary>
+        /// Raised once per call to <see cref="Step"/>, before the actual stepping process has been done.
+        /// The float parameter is the unscaled delta time, in seconds, that was passed in to the Step method.
+        /// </summary>
+        public event Action<AnimNode, float>? PreStep;
+
+        /// <summary>
+        /// Raised once per call to <see cref="Step"/>, after the actual stepping process has been done
+        /// (including the stepping of all children).
+        /// The float parameter is the unscaled delta time, in seconds, that was passed in to the Step method.
+        /// </summary>
+        public event Action<AnimNode, float>? PostStep;
+
+        /// <summary>
         /// Internal list of children.
         /// Modify directly with care.
         /// </summary>
         protected readonly List<AnimNode> Children = new List<AnimNode>();
-
-        private readonly List<AnimNode> tempChildren = new List<AnimNode>();
 
         /// <summary>
         /// Default constructor. Does nothing.
@@ -115,6 +127,8 @@ namespace NeoAnimLib
                 throw new Exception("Attempted to add node twice.");
             if (node.Parent != null)
                 throw new Exception("Node '{node}' already has a parent.");
+            if (node.IsEnded)
+                throw new InvalidOperationException($"Node '{node}' is already ended so it cannot be added.");
 
             Children.Add(node);
             node.Parent = this;
@@ -132,13 +146,29 @@ namespace NeoAnimLib
             if (Children.Contains(node))
                 throw new Exception("Attempted to add node twice.");
             if (node.Parent != null)
-                throw new Exception("Node '{node}' already has a parent.");
+                throw new Exception($"Node '{node}' already has a parent.");
+            if (node.IsEnded)
+                throw new InvalidOperationException($"Node '{node}' is already ended so it cannot be inserted.");
 
             if (index < 0 || index > Children.Count)
                 throw new IndexOutOfRangeException($"Index {index} is out of the valid range (there are {Children.Count} items)");
 
             Children.Insert(index, node);
             node.Parent = this;
+        }
+
+        /// <summary>
+        /// Calls <see cref="Remove(AnimNode)"/> for all direct children.
+        /// </summary>
+        public void Clear()
+        {
+            using var _ = ListPool<AnimNode>.Borrow(out var tempChildren);
+
+            tempChildren.AddRange(Children);
+            foreach (AnimNode child in tempChildren.Where(child => Children.Contains(child)))
+            {
+                Remove(child);
+            }
         }
 
         /// <summary>
@@ -185,6 +215,7 @@ namespace NeoAnimLib
             if (deltaTime < 0f)
                 throw new ArgumentOutOfRangeException(nameof(deltaTime), $"{nameof(deltaTime)} ({deltaTime}) should not be less than 0. To play an animation in reverse, change the {nameof(LocalSpeed)} property to a negative value.");
 
+            PreStep?.Invoke(this, deltaTime);
             LocalStep(deltaTime);
 
             /*
@@ -193,6 +224,8 @@ namespace NeoAnimLib
              *  - When Step is called and it triggers the addition of a new child.
              *  - When Step is called and it triggers the removal of an existing child.
              */
+
+            using var _ = ListPool<AnimNode>.Borrow(out var tempChildren);
 
             tempChildren.AddRange(Children);
 
@@ -213,6 +246,7 @@ namespace NeoAnimLib
             //}
 
             tempChildren.Clear();
+            PostStep?.Invoke(this, deltaTime);
         }
 
         /// <summary>
@@ -229,11 +263,11 @@ namespace NeoAnimLib
         /// Samples this node at the <see cref="LocalTime"/>
         /// using the <see cref="SamplerInput"/> provided.
         /// Returns a new <see cref="AnimSample"/> which will need to be disposed of when no longer in use.
+        /// May return null if there is nothing to output.
         /// </summary>
         /// <param name="input">Sampler settings that determine how the output sample is composed.</param>
         /// <returns>A new instance of <see cref="AnimSample"/>.</returns>
-        /// <exception cref="NotImplementedException">If the particular node type it is called on does not support sampling.</exception>
-        public virtual AnimSample Sample(in SamplerInput input) => throw new NotImplementedException($"A node of type {GetType()} cannot be sampled.");
+        public virtual AnimSample? Sample(in SamplerInput input) => null;
 
         /// <summary>
         /// Makes a string that contains a debug view of this node and all children nodes
@@ -260,9 +294,10 @@ namespace NeoAnimLib
         }
 
         /// <summary>
-        /// 
+        /// Begins a transition to another node by
+        /// replacing this node with a <see cref="TransitionNode"/> in this node's parent.
         /// </summary>
-        public void TransitionTo(AnimNode? other, float duration)
+        public void TransitionTo(AnimNode? other, float duration, in TransitionOptions options = default)
         {
             // TODO it is probably a good idea to allow other to be null
             // which would transition to a blank state i.e. a clip that returns no samples.
@@ -271,12 +306,12 @@ namespace NeoAnimLib
                 throw new ArgumentNullException(nameof(other));
             if (duration <= 0f)
                 throw new ArgumentOutOfRangeException(nameof(duration), duration.ToString(CultureInfo.InvariantCulture));
-
             if (Parent == null)
                 throw new InvalidOperationException("Can only call TransitionTo if this node has a parent.");
-
             if (other.Parent != null)
                 throw new InvalidOperationException("Other must have a null parent.");
+
+            Debug.Assert(other != this);
 
             var transitionNode = new TransitionNode()
             {
@@ -285,6 +320,12 @@ namespace NeoAnimLib
             Parent.Replace(this, transitionNode);
             transitionNode.FromNode = this;
             transitionNode.ToNode = other;
+
+            if (options.SyncTime)
+            {
+                other.LocalTime = LocalTime;
+                other.LocalSpeed = LocalSpeed;
+            }
         }
 
         /// <inheritdoc/>

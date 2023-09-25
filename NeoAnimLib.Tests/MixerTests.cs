@@ -57,7 +57,9 @@ public class MixerTests : TestBase
         void CheckWithDefault(string pass, float w, bool n)
         {
             using var sample = mixer.Sample(sampler);
-            sample.Samples.Should().ContainSingle();
+            sample.Should().NotBeNull();
+
+            sample!.Samples.Should().ContainSingle();
             sample.Samples.First().Path.Should().Be(NAME, pass);
 
             float expectedValue;

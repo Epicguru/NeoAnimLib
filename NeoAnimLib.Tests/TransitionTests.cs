@@ -42,8 +42,9 @@ public class TransitionTests : TestBase
                 DefaultValueSource = null,
                 MissingPropertyBehaviour = MissingPropertyBehaviour.UseKnownValue,
             });
+            sample.Should().NotBeNull();
 
-            bool found = sample.TryGetProperty("PathA", out var prop);
+            bool found = sample!.TryGetProperty("PathA", out var prop);
             found.Should().BeTrue();
 
             prop.Path.Should().Be("PathA");
@@ -87,20 +88,19 @@ public class TransitionTests : TestBase
     }
 
     [Theory]
-    [InlineData(0f, 0f, 1f, false, 0f)]
-    [InlineData(1f, 0f, 1f, false, 1f)]
-    [InlineData(1f, 0f, 1f, true, 1f)]
-    [InlineData(1f, 0f, 0f, false, 0f)]
-    [InlineData(1f, 0f, 0.01f, false, 1f)]
-    [InlineData(1f, 1f, 1f, false, 1f)]
-    [InlineData(1f, 1f, 0.5f, false, 0.5f)]
-    [InlineData(1f, 1f, 2f, false, 1f)]
-    [InlineData(1f, 2f, 1f, false, 0.5f)]
-    [InlineData(1f, 2f, 2f, false, 1f)]
-    [InlineData(1f, 1f, -1f, false, 1f)]
-    [InlineData(1f, 1f, 0.5f, false, 0.5f)]
-    [InlineData(1f, 0.1f, 1f, false, 1)]
-    public void TestTransitionDuration(float deltaTime, float duration, float speed, bool unscaled, float expectedBlend)
+    [InlineData(0f, 0f, 1f, 0f)]
+    [InlineData(1f, 0f, 1f, 1f)]
+    [InlineData(1f, 0f, 1f, 1f)]
+    [InlineData(1f, 0f, 0f, 0f)]
+    [InlineData(1f, 0f, 0.01f, 1f)]
+    [InlineData(1f, 1f, 1f, 1f)]
+    [InlineData(1f, 1f, 0.5f, 0.5f)]
+    [InlineData(1f, 1f, 2f, 1f)]
+    [InlineData(1f, 2f, 1f, 0.5f)]
+    [InlineData(1f, 2f, 2f, 1f)]
+    [InlineData(1f, 1f, -1f, 1f)]
+    [InlineData(1f, 0.1f, 1f, 1)]
+    public void TestTransitionDuration(float deltaTime, float duration, float speed, float expectedBlend)
     {
         var clipA = new TestClip("ClipA");
         var clipB = new TestClip("ClipB");
@@ -121,10 +121,7 @@ public class TransitionTests : TestBase
         to.LocalTime.Should().Be(0);
         to.HasStartedPlaying.Should().BeFalse();
 
-        if (unscaled)
-            node.TransitionDurationUnscaled = duration;
-        else
-            node.TransitionDuration = duration;
+        node.TransitionDuration = duration;
 
         node.LocalSpeed = speed;
 
@@ -135,32 +132,24 @@ public class TransitionTests : TestBase
     }
 
     [Theory]
-    [InlineData(null, 0f, false, false, 1f)]
-    [InlineData(null, 0f, false, false, 0f)]
-    [InlineData(null, 1f, false, false, 1f)]
-    [InlineData(null, 1f, false, false, 0f)]
-    [InlineData(1f, 1f, true, false, 1f)]
-    [InlineData(1f, 1f, true, true, 1f)]
-    [InlineData(1f, 0.99f, false, false, 1f)]
-    [InlineData(1f, 0.99f, false, true, 1f)]
-    [InlineData(1f, 1f, true, false, -1f)]
-    [InlineData(1f, 1f, true, true, -1f)]
-    [InlineData(1f, 0.99f, false, true, -1f)]
-    [InlineData(1f, 0.99f, false, false, -1f)]
-    [InlineData(0.5f, 0.99f, true, false, -1f)]
-    [InlineData(0.5f, 0.99f, true, true, -1f)]
-    public void TestTransitionEnd(float? duration, float step, bool shouldEnd, bool unscaled, float speed)
+    [InlineData(null, 0f, false, 1f)]
+    [InlineData(null, 0f, false, 0f)]
+    [InlineData(null, 1f, false, 1f)]
+    [InlineData(null, 1f, false, 0f)]
+    [InlineData(1f, 1f, true, 1f)]
+    [InlineData(1f, 0.99f, false, 1f)]
+    [InlineData(1f, 1f, true, -1f)]
+    [InlineData(1f, 0.99f, false, -1f)]
+    [InlineData(0.5f, 0.99f, true, -1f)]
+    public void TestTransitionEnd(float? duration, float step, bool shouldEnd, float speed)
     {
         var clipA = new TestClip("ClipA") { Length = 1 };
         var clipB = new TestClip("ClipB") { Length = 1 };
-        TransitionNode node = new TransitionNode(clipA, clipB);
-
-        if (unscaled)
-            node.TransitionDurationUnscaled = duration;
-        else
-            node.TransitionDuration = duration;
-
-        node.LocalSpeed = speed;
+        TransitionNode node = new TransitionNode(clipA, clipB)
+        {
+            TransitionDuration = duration,
+            LocalSpeed = speed
+        };
 
         using var monitor = node.Monitor();
 

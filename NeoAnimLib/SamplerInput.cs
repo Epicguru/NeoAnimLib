@@ -19,5 +19,11 @@ namespace NeoAnimLib
         /// Only used in certain nodes such as <see cref="MixAnimNode"/>.
         /// </summary>
         public MissingPropertyBehaviour MissingPropertyBehaviour { get; set; }
+
+        /// <summary>
+        /// A generic channel value. This could be used to output different values from your implementation of <see cref="IAnimClip"/>.
+        /// Does nothing within the main library.
+        /// </summary>
+        public int Channel { get; set; }
     }
 }

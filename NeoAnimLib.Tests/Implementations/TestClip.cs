@@ -14,7 +14,7 @@ public class TestClip : IAnimClip
         Name = name;
     }
 
-    public void Sample(AnimSample sample, float time)
+    public void Sample(AnimSample sample, float time, in SamplerInput input)
     {
         foreach (var s in Samples)
         {
