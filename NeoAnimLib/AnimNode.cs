@@ -102,7 +102,7 @@ namespace NeoAnimLib
         protected readonly List<AnimNode> Children = new List<AnimNode>();
 
         /// <summary>
-        /// Default constructor. Does nothing.
+        /// Default constructor.
         /// </summary>
         protected AnimNode() { }
 

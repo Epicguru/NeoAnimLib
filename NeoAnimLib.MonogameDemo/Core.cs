@@ -14,7 +14,7 @@ public class Core : Game
     private FontSystem font;
     private Texture2D pixel;
 
-    private MixAnimNode rootNode;
+    private SlottedAnimNode rootNode;
     private bool flipFlop;
     private KeyboardState oldKState;
 
@@ -40,10 +40,7 @@ public class Core : Game
 
     private void InitNodes()
     {
-        rootNode = new MixAnimNode("Root Node");
-
-        rootNode.Add(new ClipAnimNode(Animations.VerticalHover));
-        //rootNode.Add(new ClipAnimNode(Animations.HorizontalHover));
+        rootNode = new SlottedAnimNode("Root Node");
     }
 
     protected override void LoadContent()
@@ -84,8 +81,15 @@ public class Core : Game
 
             first.ContinueWith(second, 1f);
 
-            rootNode.Clear();
-            rootNode.Add(first);
+            rootNode.Insert(0, first);
+        }
+
+        if (kState.IsKeyDown(Keys.S) && oldKState.IsKeyUp(Keys.S))
+        {
+            var first = new ClipAnimNode(Animations.VerticalHover) { TargetDuration = 1f };
+
+            rootNode.Insert(1, first);
+            rootNode.GetNodeAt(1).LocalWeight = 0.25f;
         }
 
         oldKState = kState;
