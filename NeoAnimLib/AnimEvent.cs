@@ -18,16 +18,15 @@ namespace NeoAnimLib
         /// <summary>
         /// The action that is raised when this event is hit.
         /// </summary>
-        public Action<ClipAnimNode> Action { get; set; }
+        public Action<ClipAnimNode>? Action { get; set; }
 
         /// <summary>
         /// Constructs a new anim event given a time and an action to raise.
-        /// Will throw an exception if the action is null.
         /// </summary>
-        public AnimEvent(float time, Action<ClipAnimNode> action)
+        public AnimEvent(float time, Action<ClipAnimNode>? action)
         {
             Time = time;
-            Action = action ?? throw new ArgumentNullException(nameof(action));
+            Action = action;
         }
     }
 }

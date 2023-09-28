@@ -49,6 +49,10 @@ public class TestClip : IAnimClip
         {
             foreach (var e in Events)
             {
+                // Exception to normal behaviour:
+                // Events that are on the end of the clip boundary should not be carried forwards
+                // to the next chunk.
+
                 float time = e.Time + (chunkIndex * Length);
                 if (time >= start && time < end)
                     yield return e;

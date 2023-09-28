@@ -185,8 +185,9 @@ namespace NeoAnimLib.Nodes
         }
 
         /// <inheritdoc/>
-        public override AnimSample? Sample(in SamplerInput input)
+        public override AnimSample? Sample(SamplerInput input)
         {
+            input.Node = this;
             EnsureChildrenNotNull();
 
             FromNode.LocalWeight = 1f - Blend;

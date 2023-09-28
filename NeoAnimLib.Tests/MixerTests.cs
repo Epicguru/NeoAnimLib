@@ -76,7 +76,8 @@ public class MixerTests : TestBase
         void CheckWithKnownValue(string pass)
         {
             using var sample = mixer.Sample(sampler);
-            sample.Samples.Should().ContainSingle();
+            sample.Should().NotBeNull();
+            sample!.Samples.Should().ContainSingle();
             sample.Samples.First().Path.Should().Be(NAME, pass);
 
             // When using the 'Known Value' mode,
@@ -153,7 +154,8 @@ public class MixerTests : TestBase
 
         using (var output = mixer.Sample(new SamplerInput { MissingPropertyBehaviour = MissingPropertyBehaviour.UseKnownValue } ))
         {
-            output.Samples.Count.Should().Be(2);
+            output.Should().NotBeNull();
+            output!.Samples.Count.Should().Be(2);
 
             bool found = output.TryGetProperty(PROP_NAME, out var outputProp);
             found.Should().Be(true);
@@ -171,7 +173,8 @@ public class MixerTests : TestBase
 
         using (var output = mixer.Sample(new SamplerInput { MissingPropertyBehaviour = MissingPropertyBehaviour.UseKnownValue }))
         {
-            output.Samples.Count.Should().Be(2);
+            output.Should().NotBeNull();
+            output!.Samples.Count.Should().Be(2);
             bool found = output.TryGetProperty(PROP_NAME, out var outputProp);
             found.Should().Be(true);
 

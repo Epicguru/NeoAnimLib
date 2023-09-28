@@ -90,7 +90,6 @@ public class TransitionTests : TestBase
     [Theory]
     [InlineData(0f, 0f, 1f, 0f)]
     [InlineData(1f, 0f, 1f, 1f)]
-    [InlineData(1f, 0f, 1f, 1f)]
     [InlineData(1f, 0f, 0f, 0f)]
     [InlineData(1f, 0f, 0.01f, 1f)]
     [InlineData(1f, 1f, 1f, 1f)]

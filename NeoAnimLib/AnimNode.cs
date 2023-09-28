@@ -83,6 +83,12 @@ namespace NeoAnimLib
         public int IndexInParent => Parent == null ? -1 : Parent.Children.IndexOf(this);
 
         /// <summary>
+        /// This is the value of <see cref="LocalTime"/> after the end of the last <see cref="Step"/> call.
+        /// The initial value is <see cref="float.NaN"/>.
+        /// </summary>
+        protected float LastLocalTime = float.NaN;
+
+        /// <summary>
         /// Raised once per call to <see cref="Step"/>, before the actual stepping process has been done.
         /// The float parameter is the unscaled delta time, in seconds, that was passed in to the Step method.
         /// </summary>
@@ -247,6 +253,8 @@ namespace NeoAnimLib
 
             tempChildren.Clear();
             PostStep?.Invoke(this, deltaTime);
+
+            LastLocalTime = LocalTime;
         }
 
         /// <summary>
@@ -267,7 +275,7 @@ namespace NeoAnimLib
         /// </summary>
         /// <param name="input">Sampler settings that determine how the output sample is composed.</param>
         /// <returns>A new instance of <see cref="AnimSample"/>.</returns>
-        public virtual AnimSample? Sample(in SamplerInput input) => null;
+        public virtual AnimSample? Sample(SamplerInput input) => null;
 
         /// <summary>
         /// Makes a string that contains a debug view of this node and all children nodes

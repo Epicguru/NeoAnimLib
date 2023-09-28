@@ -27,9 +27,9 @@ public class EventsTests : TestBase
     [InlineData(1f, 0f, 1f, 0)]
     [InlineData(1f, 0f, 1.1f, 1)]
     [InlineData(1f, 1f, 1f, 0)]
-    [InlineData(1f, 1f, 1.1f, 1)]
-    [InlineData(1f, 1f, 2f, 1)]
-    [InlineData(1f, 1f, 2.1f, 2)]
+    [InlineData(1f, 1f, 1.1f, 0)]
+    [InlineData(1f, 1f, 2f, 0)]
+    [InlineData(1f, 1f, 2.1f, 1)]
     public void SingleEventTest(float eventTime, float startTime, float endTime, int expectedCount)
     {
         startTime.Should().BeLessThanOrEqualTo(endTime);

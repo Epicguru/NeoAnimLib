@@ -46,8 +46,10 @@ namespace NeoAnimLib.Nodes
         /// The output will be a blend of all child outputs, and the method use to blend between samples is defined by
         /// <paramref name="input"/> as well as the individual child weights.
         /// </summary>
-        public override AnimSample? Sample(in SamplerInput input)
+        public override AnimSample? Sample(SamplerInput input)
         {
+            input.Node = this;
+
             if (NormalizeWeights)
                 NormalizeChildWeights();
 

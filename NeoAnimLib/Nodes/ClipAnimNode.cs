@@ -152,8 +152,10 @@ namespace NeoAnimLib.Nodes
         }
 
         /// <inheritdoc/>
-        public override AnimSample Sample(in SamplerInput input)
+        public override AnimSample Sample(SamplerInput input)
         {
+            input.Node = this;
+
             var sample = AnimSample.Create(LocalTime);
             Clip.Sample(sample, LocalTime, input);
             return sample;
@@ -256,10 +258,8 @@ namespace NeoAnimLib.Nodes
         {
             foreach (var e in Clip.GetEventsInRange(startTime, endTime))
             {
-                if (e.Action == null)
-                    throw new Exception($"An event was hit that has a null action! (at time {e.Time})");
-
-                e.Action.Invoke(this);
+                Debug.WriteLineIf(Length == 0f || e.Time == 0 || e.Time % Length != 0f, "Events should not be placed at Time==Clip.Length because it overlaps with the start (time:0) event.");
+                e.Action?.Invoke(this);
             }
         }
 

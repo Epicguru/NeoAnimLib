@@ -15,7 +15,6 @@ public class Core : Game
     private Texture2D pixel;
 
     private SlottedAnimNode rootNode;
-    private bool flipFlop;
     private KeyboardState oldKState;
 
     public Core()
