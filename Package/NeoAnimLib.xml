@@ -1,0 +1,1019 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>NeoAnimLib</name>
+    </assembly>
+    <members>
+        <member name="T:NeoAnimLib.AnimEvent">
+            <summary>
+            Represents an animation event that is part of a clip.
+            Simply a structure with a time and a callback method.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimEvent.Time">
+            <summary>
+            The time of this event, in seconds.
+            This time is expected to be between 0 and <see cref="P:NeoAnimLib.IAnimClip.Length"/>, inclusive.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimEvent.Action">
+            <summary>
+            The action that is raised when this event is hit.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimEvent.#ctor(System.Single,System.Action{NeoAnimLib.Nodes.ClipAnimNode})">
+            <summary>
+            Constructs a new anim event given a time and an action to raise.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.AnimNode">
+            <summary>
+            The base class for all nodes in an animation graph.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.Parent">
+            <summary>
+            The parent node. May be null (such as when this node is the root node).
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.Name">
+            <summary>
+            The optional name of this node. Can be used for debugging.
+            May be null.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.LocalWeight">
+            <summary>
+            The local weight of this node.
+            The way it is interpreted depends on the <see cref="P:NeoAnimLib.AnimNode.Parent"/> node type.
+            Normally it is expected to be in the [0, 1] range.
+            The default value is 1.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.Weight">
+            <summary>
+            The absolute weight of this node, calculated by taking the <see cref="P:NeoAnimLib.AnimNode.Parent"/>'s <see cref="P:NeoAnimLib.AnimNode.Weight"/>
+            and multiplying it by the <see cref="P:NeoAnimLib.AnimNode.LocalWeight"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.LocalSpeed">
+            <summary>
+            The local speed of this node.
+            <see cref="P:NeoAnimLib.AnimNode.Speed"/> is used as a multiplier to the deltaTime that is passed in to <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.Speed">
+            <summary>
+            The absolute speed of this node.
+            This value is used as a multiplier to the deltaTime that is passed in to <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.DirectChildren">
+            <summary>
+            Gets a read-only list of the direct child nodes of this node: it does not include the children of those children.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.AllChildren">
+            <summary>
+            Gets an enumeration of all child nodes beneath this one, in a depth-first manner.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.Depth">
+            <summary>
+            The 'depth' of this node i.e. how many parents it has above it.
+            </summary> 
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.LocalTime">
+            <summary>
+            The current time, in seconds, that this node is currently at.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.IsEnded">
+            <summary>
+            This is true when any end condition has been met.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimNode.IndexInParent">
+            <summary>
+            The index of this node within its parent's direct children list.
+            Will return -1 if <see cref="P:NeoAnimLib.AnimNode.Parent"/> is null.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.AnimNode.LastLocalTime">
+            <summary>
+            This is the value of <see cref="P:NeoAnimLib.AnimNode.LocalTime"/> after the end of the last <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/> call.
+            The initial value is <see cref="F:System.Single.NaN"/>.
+            </summary>
+        </member>
+        <member name="E:NeoAnimLib.AnimNode.PreStep">
+            <summary>
+            Raised once per call to <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/>, before the actual stepping process has been done.
+            The float parameter is the unscaled delta time, in seconds, that was passed in to the Step method.
+            </summary>
+        </member>
+        <member name="E:NeoAnimLib.AnimNode.PostStep">
+            <summary>
+            Raised once per call to <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/>, after the actual stepping process has been done
+            (including the stepping of all children).
+            The float parameter is the unscaled delta time, in seconds, that was passed in to the Step method.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.AnimNode.Children">
+            <summary>
+            Internal list of children.
+            Modify directly with care.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.#ctor">
+            <summary>
+            Default constructor.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.#ctor(System.String)">
+            <summary>
+            Creates a new node and assigns the <see cref="P:NeoAnimLib.AnimNode.Name"/>.
+            </summary>
+            <param name="name"></param>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.Add(NeoAnimLib.AnimNode)">
+            <summary>
+            Adds a new node as a direct child of this one.
+            Will throw an exception if the node is null or already a child of this one, or already has a parent.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.Insert(System.Int32,NeoAnimLib.AnimNode)">
+            <summary>
+            Inserts a new node into the children list of this one, at a specific index.
+            Will throw exceptions if the index is invalid or the operation cannot be performed for any
+            other reason.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.Clear">
+            <summary>
+            Calls <see cref="M:NeoAnimLib.AnimNode.Remove(NeoAnimLib.AnimNode)"/> for all direct children.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.Remove(NeoAnimLib.AnimNode)">
+            <summary>
+            Removes a child node. The node must be a direct child of this one.
+            Will throw an exception if the node is null or not a direct child.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.Replace(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)">
+            <summary>
+            Calls <see cref="M:NeoAnimLib.AnimNode.Remove(NeoAnimLib.AnimNode)"/> and then <see cref="M:NeoAnimLib.AnimNode.Insert(System.Int32,NeoAnimLib.AnimNode)"/> to
+            replace a direct child node with another.
+            If the replacement is null then this method functions the same way as <see cref="M:NeoAnimLib.AnimNode.Remove(NeoAnimLib.AnimNode)"/>.
+            <paramref name="existing"/> must not be null and it must be a <b>direct</b> child of this node.
+            </summary>
+            <param name="existing"></param>
+            <param name="replacement"></param>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.Step(System.Single)">
+            <summary>
+            Updates this node and all child nodes recursively
+            by advancing forwards their state by <paramref name="deltaTime"/> seconds.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.LocalStep(System.Single)">
+            <summary>
+            Performs any stepping necessary, such as advancing the animation or raising events.
+            Default implementation in <see cref="T:NeoAnimLib.AnimNode"/> does nothing.
+            </summary>
+            <param name="deltaTime">The time, in seconds, to advance by.</param>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.Sample(NeoAnimLib.SamplerInput)">
+            <summary>
+            Samples this node at the <see cref="P:NeoAnimLib.AnimNode.LocalTime"/>
+            using the <see cref="T:NeoAnimLib.SamplerInput"/> provided.
+            Returns a new <see cref="T:NeoAnimLib.AnimSample"/> which will need to be disposed of when no longer in use.
+            May return null if there is nothing to output.
+            </summary>
+            <param name="input">Sampler settings that determine how the output sample is composed.</param>
+            <returns>A new instance of <see cref="T:NeoAnimLib.AnimSample"/>.</returns>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.PrintDebugTree">
+            <summary>
+            Makes a string that contains a debug view of this node and all children nodes
+            for debugging purposes.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.PrintDebugTree(System.Text.StringBuilder)">
+            <summary>
+            Populated a <see cref="T:System.Text.StringBuilder"/> with a string that contains a debug view of this node and all children nodes
+            for debugging purposes.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.TransitionTo(NeoAnimLib.AnimNode,System.Single,NeoAnimLib.Nodes.TransitionOptions@)">
+            <summary>
+            Begins a transition to another node by
+            replacing this node with a <see cref="T:NeoAnimLib.Nodes.TransitionNode"/> in this node's parent.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimNode.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.AnimPropertySample">
+            <summary>
+            A path-value pair.
+            The <see cref="P:NeoAnimLib.AnimPropertySample.Path"/> is a string that points to a particular animated property, and
+            the <see cref="P:NeoAnimLib.AnimPropertySample.Value"/> is the actual value of that property.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimPropertySample.Lerp(NeoAnimLib.AnimPropertySample@,NeoAnimLib.AnimPropertySample@,System.Single)">
+            <summary>
+            Linearly interpolates between two samples, creating a new sample
+            that has the <see cref="P:NeoAnimLib.AnimPropertySample.Path"/> from <paramref name="a"/>, and the <see cref="P:NeoAnimLib.AnimPropertySample.Value"/>
+            that is <paramref name="t"/>% between <paramref name="a"/>.Value and <paramref name="b"/>.Value.
+            <paramref name="t"/> is in the range [0, 1] for [a.Value and b.Value], but may be lower of higher.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimPropertySample.Path">
+            <summary>
+            The full path of this animated property.
+            Serves as the ID of this property.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimPropertySample.Value">
+            <summary>
+            The value of the property at this point in time.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimPropertySample.#ctor(System.String,System.Single)">
+            <summary>
+            Constructs a new <see cref="T:NeoAnimLib.AnimPropertySample"/>
+            provided a path and a value. The path cannot be null.
+            </summary>
+            <param name="path"></param>
+            <param name="value"></param>
+            <exception cref="T:System.ArgumentNullException"></exception>
+        </member>
+        <member name="T:NeoAnimLib.AnimSample">
+            <summary>
+            A type that represents a collection of <see cref="T:NeoAnimLib.AnimPropertySample"/>s.
+            It is commonly used to represent an animation sample at a particular point in time.
+            This class is automatically pooled when the <see cref="M:NeoAnimLib.AnimSample.Dispose"/> method is called,
+            so disposing it mandatory.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimSample.BorrowedCount">
+            <summary>
+            The number of active borrowed <see cref="T:NeoAnimLib.AnimSample"/> objects by using the <see cref="M:NeoAnimLib.AnimSample.Create(System.Single)"/>
+            method.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimSample.PooledCount">
+            <summary>
+            The number of pooled <see cref="T:NeoAnimLib.AnimSample"/> objects.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.Lerp(NeoAnimLib.AnimSample,NeoAnimLib.AnimSample,NeoAnimLib.DefaultValueSource,System.Single,NeoAnimLib.MissingPropertyBehaviour)">
+            <summary>
+            Creates a new <see cref="T:NeoAnimLib.AnimSample"/> that is a linear lerp between the two samples <paramref name="a"/> and <paramref name="b"/>
+            using <paramref name="t"/> as the percentage.
+            Unless <paramref name="missingPropertyBehaviour"/> is <see cref="F:NeoAnimLib.MissingPropertyBehaviour.UseKnownValue"/> then <paramref name="defaultValueSource"/> must be provided,
+            to provide a value when a property is missing from one sample or the other.
+            Remember to always dispose of anim samples after they are no longer needed.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.Create(System.Single)">
+            <summary>
+            Gets a new <see cref="T:NeoAnimLib.AnimSample"/> from the pool.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.ClearPool">
+            <summary>
+            Empties all <see cref="T:NeoAnimLib.AnimSample"/>s from the pool and performs garbage collection.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimSample.Samples">
+            <summary>
+            A read only collection of all properties in this sample.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimSample.IsDisposed">
+            <summary>
+            Is this sample disposed of? If true, this object should not be used, because it will be pooled and recycled.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.AnimSample.Time">
+            <summary>
+            The point in time that this sample was taken at.
+            Normally measured in seconds.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.TryGetProperty(System.String,NeoAnimLib.AnimPropertySample@)">
+            <summary>
+            Tries to get a sample by name.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.GetPropertyValue(System.String,NeoAnimLib.DefaultValueSource)">
+            <summary>
+            Gets a property value by attempting to find the property in this sample (using <see cref="M:NeoAnimLib.AnimSample.TryGetProperty(System.String,NeoAnimLib.AnimPropertySample@)"/>),
+            and if it is not found then <paramref name="defaultValueSource"/> is used to get the default value for that property.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.GetPropertyValue(System.String,System.Single)">
+            <summary>
+            Gets a property value by attempting to find the property in this sample (using <see cref="M:NeoAnimLib.AnimSample.TryGetProperty(System.String,NeoAnimLib.AnimPropertySample@)"/>),
+            and if it is not found then <paramref name="defaultValue"/> is returned.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.SetProperty(NeoAnimLib.AnimPropertySample@)">
+            <summary>
+            Adds or overwrites a <see cref="T:NeoAnimLib.AnimPropertySample"/> in this sample.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.Dispose">
+            <summary>
+            Puts this sample object back in to the animation pool, and clears all properties.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.AnimSample.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.Clips.SnapshotAnimClip">
+            <summary>
+            An implementation of <see cref="T:NeoAnimLib.IAnimClip"/> that is a static collection of
+            <see cref="T:NeoAnimLib.AnimPropertySample"/>s, meaning that it will always return the exact same properties
+            when sampled regardless of time.
+            The <see cref="P:NeoAnimLib.Clips.SnapshotAnimClip.Length"/> is always 0 and it will never have any events.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Clips.SnapshotAnimClip.Name">
+            <inheritdoc/>
+        </member>
+        <member name="P:NeoAnimLib.Clips.SnapshotAnimClip.Length">
+            <summary>
+            The length of this <see cref="T:NeoAnimLib.Clips.SnapshotAnimClip"/>: it is always 0.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Clips.SnapshotAnimClip.#ctor(System.Collections.Generic.IEnumerable{NeoAnimLib.AnimPropertySample},System.String)">
+            <summary>
+            Creates a new snapshot clip from an enumeration of samples.
+            The samples enumeration must not be null.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Clips.SnapshotAnimClip.#ctor(NeoAnimLib.AnimSample,System.String)">
+            <summary>
+            Creates a new snapshot clip based on a sample object. The sample must not be null.
+            This copies all the <see cref="T:NeoAnimLib.AnimPropertySample"/> from <see cref="P:NeoAnimLib.AnimSample.Samples"/>.
+            If <paramref name="sample"/> is null, then this clip will just be empty with no samples.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Clips.SnapshotAnimClip.Sample(NeoAnimLib.AnimSample,System.Single,NeoAnimLib.SamplerInput@)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Clips.SnapshotAnimClip.GetEventsInRange(System.Single,System.Single)">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.DefaultValueSource">
+            <summary>
+            A delegate that takes in the path of a property
+            and should return the default value for said property.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.Extensions">
+            <summary>
+            A collection of extension methods.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Extensions.IsPose(NeoAnimLib.IAnimClip)">
+            <summary>
+            Returns true if this <see cref="T:NeoAnimLib.IAnimClip"/> has a <see cref="P:NeoAnimLib.IAnimClip.Length"/> of 0.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Extensions.ContinueWith``1(``0,NeoAnimLib.AnimNode)">
+            <summary>
+            Whenever the end condition on this node is met, it is immediately replaced with <paramref name="other"/>.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Extensions.ContinueWith``1(``0,NeoAnimLib.AnimNode,System.Single,System.Boolean)">
+            <summary>
+            Whenever this node is approaching a known end condition (such as one set by <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.TargetDuration"/> or
+            <see cref="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration"/>) then it will begin transitioning to <paramref name="other"/>.
+            If this node unexpectedly exits, such as by a call to <see cref="M:NeoAnimLib.Nodes.ClipAnimNode.Stop"/>, then the transition will be done immediately if
+            <paramref name="doInstantTransitionIfEarlyExit"/> is true.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.IAnimClip">
+            <summary>
+            An interface that an animation clip should implement.
+            This interface can be used to sample an animation.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.IAnimClip.Name">
+            <summary>
+            The name of this animation clip.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.IAnimClip.Length">
+            <summary>
+            The total length, in seconds, of this animation clip.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.IAnimClip.Sample(NeoAnimLib.AnimSample,System.Single,NeoAnimLib.SamplerInput@)">
+            <summary>
+            Samples this animation clip at a particular time, and writes the properties to the <paramref name="sample"/>.
+            </summary>
+            <param name="sample">The sample that is written to.</param>
+            <param name="time">The time, in seconds, that the clip should be sampled at. May be less than 0 or more than <see cref="P:NeoAnimLib.IAnimClip.Length"/>.</param>
+            <param name="input">The <see cref="T:NeoAnimLib.SamplerInput"/> that was passed in to the <see cref="M:NeoAnimLib.AnimNode.Sample(NeoAnimLib.SamplerInput)"/> method.</param>
+        </member>
+        <member name="M:NeoAnimLib.IAnimClip.GetEventsInRange(System.Single,System.Single)">
+            <summary>
+            Should get an enumeration of events that are at the between the <paramref name="startTime"/> (inclusive) and <paramref name="endTime"/> (exclusive).
+            <paramref name="startTime"/> is always less than or equal to <paramref name="endTime"/>.
+            The order of the returned events is the order in which they will be invoked.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.MissingPropertyBehaviour">
+            <summary>
+            Defines how a value will be set when interpolating between two states
+            where one state has a property but the other does not.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.MissingPropertyBehaviour.UseDefaultValue">
+            <summary>
+            The final value is the interpolation between the known value and the default value for that property,
+            as provided by a <see cref="T:NeoAnimLib.DefaultValueSource"/>.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.MissingPropertyBehaviour.UseKnownValue">
+            <summary>
+            If either state is missing the property, the output will simply
+            be the value of the state that does have the property, regardless of weight or the value of <code>t</code>.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.ClipAnimNode">
+            <summary>
+            An anim node that represents an animation clip.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.Length">
+            <summary>
+            The length of the animation clip: shorthand for <see cref="F:NeoAnimLib.Nodes.ClipAnimNode.Clip"/>.Length;
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.ClipAnimNode.Clip">
+            <summary>
+            The animation clip for this node.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.TargetLoopCount">
+            <summary>
+            The target number of loops that will be done of the <see cref="F:NeoAnimLib.Nodes.ClipAnimNode.Clip"/>.
+            If null, it will loop indefinitely unless another end condition is met.
+            Input must be null or greater than 0.
+            If <see cref="F:NeoAnimLib.Nodes.ClipAnimNode.Clip"/> has a duration of 0, then this property is invalid and must be left as null.
+            Upon reaching this target loop count, it is an end condition and the behaviour described in <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour"/> is triggered
+            and the <see cref="E:NeoAnimLib.Nodes.ClipAnimNode.OnEndPlay"/> event is raised.
+            See also: <seealso cref="P:NeoAnimLib.Nodes.ClipAnimNode.LoopCount"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.LoopCount">
+            <summary>
+            The number of complete loops that this clip has done.
+            This will always be 0 if the <see cref="F:NeoAnimLib.Nodes.ClipAnimNode.Clip"/> has a length of 0.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.TargetDuration">
+            <summary>
+            The target duration, in seconds, that this clip will play for.
+            Upon reaching this duration, it is an end condition and the behaviour described in <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour"/> is triggered
+            and the <see cref="E:NeoAnimLib.Nodes.ClipAnimNode.OnEndPlay"/> event is raised.
+            Must be greater than 0 or null.
+            This duration is in <b>scaled</b> time, meaning that it is affected by <see cref="P:NeoAnimLib.AnimNode.Speed"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.Duration">
+            <summary>
+            The time, in seconds, for which this clip has been playing.
+            The value is scaled by <see cref="P:NeoAnimLib.AnimNode.Speed"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.DurationUnscaled">
+            <summary>
+            The time, in seconds, for which this clip has been playing.
+            This value is unaffected by <see cref="P:NeoAnimLib.AnimNode.Speed"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.HasStartedPlaying">
+            <summary>
+            Returns true if this clip has ever been stepped (see <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/>.
+            See also <see cref="P:NeoAnimLib.AnimNode.IsEnded"/>.
+            Note: the clip may have 'ended' without starting if an end condition was met before the very first
+            first attempt to step it.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour">
+            <summary>
+            Changes what happens when an end condition, such as <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.TargetLoopCount"/>, is met.
+            </summary>
+        </member>
+        <member name="E:NeoAnimLib.Nodes.ClipAnimNode.OnStartPlay">
+            <summary>
+            Invoked once on the first frame that this clip starts playing,
+            even if it's <see cref="P:NeoAnimLib.AnimNode.Speed"/> or <see cref="P:NeoAnimLib.AnimNode.Weight"/> are 0.
+            </summary>
+        </member>
+        <member name="E:NeoAnimLib.Nodes.ClipAnimNode.OnPlaying">
+            <summary>
+            Invoked once per <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/> call while this clip is playing,
+            even if its <see cref="P:NeoAnimLib.AnimNode.Speed"/> or <see cref="P:NeoAnimLib.AnimNode.Weight"/> are 0.
+            </summary>
+        </member>
+        <member name="E:NeoAnimLib.Nodes.ClipAnimNode.OnLoop">
+            <summary>
+            Invoked when this animation clip has completed a loop.
+            This event will never be raised if the <see cref="F:NeoAnimLib.Nodes.ClipAnimNode.Clip"/> has a length of 0.
+            Note: this is raised whenever the clip passes
+            </summary>
+        </member>
+        <member name="E:NeoAnimLib.Nodes.ClipAnimNode.OnEndPlay">
+            <summary>
+            Invoked once when this animation clip reaches it's end condition.
+            After this event is raised, the behaviour defined by <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour"/> is invoked.
+            This will not be raised more than once regardless of <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour"/>.
+            Note: this event is only raised if OnStartPlay has been raised, meaning that if the end condition is met
+            before the clip has had a chance to step, then this will not be raised.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.ClipAnimNode.LastLoopIndex">
+            <summary>
+            Used to track which loop we were on last local step.
+            Use for testing and debugging purposes only.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.#ctor(NeoAnimLib.IAnimClip)">
+            <summary>
+            Creates a new <see cref="T:NeoAnimLib.Nodes.ClipAnimNode"/> with a specified <see cref="T:NeoAnimLib.IAnimClip"/>.
+            The clip can not be null and it can not be changed after this point.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.Sample(NeoAnimLib.SamplerInput)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.LocalStep(System.Single)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.SetLocalTime(System.Single)">
+            <summary>
+            Immediately sets the <see cref="P:NeoAnimLib.AnimNode.LocalTime"/> to the specified value.
+            <b>Important:</b> this does not raise any events, change the <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.LoopCount"/> or <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.Duration"/> or trigger any end conditions.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.RaiseAnimEvents(System.Single,System.Single)">
+            <summary>
+            Raises all animation events between <paramref name="startTime"/> (inclusive) and <paramref name="endTime"/> (exclusive).
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.Stop">
+            <summary>
+            Immediately stops this animation clip,
+            and triggers the behaviour defined by <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour"/>
+            (which is removing this clip from its parent by default).
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.CheckEndConditions">
+            <summary>
+            Returns true if any end condition has been met.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.TryRaiseEndEvent">
+            <summary>
+            Attempts to raise the <see cref="E:NeoAnimLib.Nodes.ClipAnimNode.OnEndPlay"/> event.
+            It will not be raised if it has already been raised before or this clip has not been stepped.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.TryPerformEndBehaviour">
+            <summary>
+            Attempts to perform the behaviour defined in <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour"/>.
+            It will not perform the behaviour twice even if called multiple times or <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.EndBehaviour"/> is changed.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.RegisterEndEvent(System.Action{NeoAnimLib.AnimNode})">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.UnRegisterEndEvent(System.Action{NeoAnimLib.AnimNode})">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode.GetTimeToEnd">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.ClipAnimNode`1">
+            <summary>
+            A subclass of <see cref="T:NeoAnimLib.Nodes.ClipAnimNode"/> that adds an additional field <see cref="F:NeoAnimLib.Nodes.ClipAnimNode`1.UserData"/>
+            that can contain custom user data for this node.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.ClipAnimNode`1.UserData">
+            <summary>
+            Custom user data, of type <typeparamref name="T" />, for this node.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.ClipAnimNode`1.#ctor(NeoAnimLib.IAnimClip)">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.ClipEndBehaviour">
+            <summary>
+            Defines the possible behaviour that occurs when the end condition of a <see cref="T:NeoAnimLib.Nodes.ClipAnimNode"/>
+            have been met, or the <see cref="M:NeoAnimLib.Nodes.ClipAnimNode.Stop"/> method is called.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.ClipEndBehaviour.RemoveFromParent">
+            <summary>
+            When the clip end condition is met, it is removed from its parent.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.ClipEndBehaviour.Nothing">
+            <summary>
+            When the clip end condition is met, nothing happens.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.IHasEndEvent">
+            <summary>
+            An interface that nodes can implement that indicates that they have and End event that is raised whenever the end
+            condition is met.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.IHasEndEvent.RegisterEndEvent(System.Action{NeoAnimLib.AnimNode})">
+            <summary>
+            Registers a callback that will be invoked whenever the end condition is met.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.IHasEndEvent.UnRegisterEndEvent(System.Action{NeoAnimLib.AnimNode})">
+            <summary>
+            Un-registers a callback that would be invoked whenever the end condition is met.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.IHasTimeToEnd">
+            <summary>
+            An interface that exposes the <see cref="M:NeoAnimLib.Nodes.IHasTimeToEnd.GetTimeToEnd"/> method.
+            For use on <see cref="T:NeoAnimLib.AnimNode"/> classes.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.IHasTimeToEnd.GetTimeToEnd">
+            <summary>
+            Returns the time, in seconds, that this <see cref="T:NeoAnimLib.AnimNode"/> is expected to last for.
+            For example, on a <see cref="T:NeoAnimLib.Nodes.ClipAnimNode"/>, this would be derived from either <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.Duration"/> or <see cref="P:NeoAnimLib.Nodes.ClipAnimNode.TargetLoopCount"/>.
+            It will return null if the time-to-end is not known or cannot be calculated.
+            Will not return a value less than 0.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.LeafAnimNode">
+            <summary>
+            An animation node that does not support adding, inserting or removing
+            child nodes.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.LeafAnimNode.Add(NeoAnimLib.AnimNode)">
+            <summary>
+            A node of this type does not support adding child nodes.
+            This method will always throw an exception.
+            </summary>
+            <exception cref="T:System.NotImplementedException">This exception is always thrown.</exception>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.LeafAnimNode.Remove(NeoAnimLib.AnimNode)">
+            <summary>
+            A node of this type does not support removing child nodes.
+            This method will always throw an exception.
+            </summary>
+            <exception cref="T:System.NotImplementedException">This exception is always thrown.</exception>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.LeafAnimNode.Insert(System.Int32,NeoAnimLib.AnimNode)">
+            <summary>
+            A node of this type does not support inserting child nodes.
+            This method will always throw an exception.
+            </summary>
+            <exception cref="T:System.NotImplementedException">This exception is always thrown.</exception>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.LeafAnimNode.#ctor">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.LeafAnimNode.#ctor(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.MixAnimNode">
+            <summary>
+            An animation node that mixes and blends between all child nodes.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.MixAnimNode.NormalizeWeights">
+            <summary>
+            If true, then the weights of all direct children are normalized before sampling.
+            Default value is false.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.MixAnimNode.#ctor">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.MixAnimNode.#ctor(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.MixAnimNode.NormalizeChildWeights">
+            <summary>
+            Changes the <see cref="P:NeoAnimLib.AnimNode.LocalWeight"/> for each direct child node such that they all sum to
+            1 whilst keeping their relative proportions.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.MixAnimNode.Sample(NeoAnimLib.SamplerInput)">
+            <summary>
+            Samples this animation.
+            May return null.
+            All child nodes should also support sampling.
+            The output will be a blend of all child outputs, and the method use to blend between samples is defined by
+            <paramref name="input"/> as well as the individual child weights.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.SlottedAnimNode">
+            <summary>
+            A subclass of <see cref="T:NeoAnimLib.Nodes.MixAnimNode"/> where each direct child node is designated a slot,
+            and subsequently sorted by that slot number.
+            There can only be one node per slot number, so if a node is added using <see cref="M:NeoAnimLib.Nodes.SlottedAnimNode.Insert(System.Int32,NeoAnimLib.AnimNode)"/>
+            and there is an existing node with the same slot number, the original is removed.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.#ctor">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.#ctor(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.GetNodeAt(System.Int32)">
+            <summary>
+            Tries to get a child <see cref="T:NeoAnimLib.AnimNode"/> for a particular slot.
+            </summary>
+            <param name="slot"></param>
+            <returns></returns>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.GetSlotOf(NeoAnimLib.AnimNode,System.Int32@)">
+            <summary>
+            Attempts to get the slot number associated with a child node.
+            Returns true if the lookup was successful, false otherwise.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.GetSlotOf(NeoAnimLib.AnimNode,System.Int32)">
+            <summary>
+            Attempts to get the slot number associated with a child node.
+            If the specified node is not a direct child of this node, then <paramref name="defaultValue"/>
+            is returned.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.Add(NeoAnimLib.AnimNode)">
+            <summary>
+            This Add method is not supported on <see cref="T:NeoAnimLib.Nodes.SlottedAnimNode"/> and will always throw an exception.
+            Use <see cref="M:NeoAnimLib.Nodes.SlottedAnimNode.Insert(System.Int32,NeoAnimLib.AnimNode)"/> or <see cref="M:NeoAnimLib.Nodes.SlottedAnimNode.Replace(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)"/> instead.
+            </summary>
+            <exception cref="T:System.InvalidOperationException">This exception is always called.</exception>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.Remove(NeoAnimLib.AnimNode)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.Insert(System.Int32,NeoAnimLib.AnimNode)">
+            <summary>
+            Inserts a new node into a particular slot.
+            If there is already a node in that slot, that existing node is
+            removed without performing the end behaviour.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.Replace(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.SlottedAnimNode.Compare(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.TransitionEndBehaviour">
+            <summary>
+            Defines the behaviour that happens when a <see cref="T:NeoAnimLib.Nodes.TransitionNode"/> reaches the end of its transition.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.TransitionEndBehaviour.ReplaceInParent">
+            <summary>
+            The transition node is replaced with the <see cref="P:NeoAnimLib.Nodes.TransitionNode.ToNode"/> in its parent if <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/>
+            has reached 100%. If <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> is less than 100%, then this node is instead replaced with a snapshot
+            of the current state of this transition node.
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.TransitionEndBehaviour.RemoveFromParent">
+            <summary>
+            This transition node is removed from its parent by a call to <see cref="M:NeoAnimLib.AnimNode.Remove(NeoAnimLib.AnimNode)"/>.
+            Keep in mind the possible behaviour if the parent node is another <see cref="T:NeoAnimLib.Nodes.TransitionNode"/>
+            </summary>
+        </member>
+        <member name="F:NeoAnimLib.Nodes.TransitionEndBehaviour.Nothing">
+            <summary>
+            Nothing happens when the end condition is met, but the end event is still raised.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.TransitionNode">
+            <summary>
+            A subclass of <see cref="T:NeoAnimLib.Nodes.MixAnimNode"/> that specializes in being a transition between exactly two child <see cref="T:NeoAnimLib.AnimNode"/>.
+            Its main properties:
+            <list type="number">
+            <item>It always has exactly two child nodes, <see cref="P:NeoAnimLib.Nodes.TransitionNode.FromNode"/> and <see cref="P:NeoAnimLib.Nodes.TransitionNode.ToNode"/>. Neither can ever be null.</item>
+            <item>Whenever <see cref="M:NeoAnimLib.Nodes.TransitionNode.Remove(NeoAnimLib.AnimNode)"/> is called, the specified node is replaced with a <see cref="T:NeoAnimLib.Clips.SnapshotAnimClip"/> that captures the state of the node being removed.</item>
+            <item><see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> must be used to control the lerp between the <see cref="P:NeoAnimLib.Nodes.TransitionNode.FromNode"/> and <see cref="P:NeoAnimLib.Nodes.TransitionNode.ToNode"/>.
+            It can be edited manually or <see cref="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration"/> can be used
+            to automatically advance <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> when <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/> is called.</item>
+            </list>
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.TransitionNode.NormalizeWeights">
+            <summary>
+            Always false on <see cref="T:NeoAnimLib.Nodes.TransitionNode"/> - it cannot be assigned to either.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.TransitionNode.FromNode">
+            <summary>
+            The <see cref="T:NeoAnimLib.AnimNode"/> that is being transitioned away from.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.TransitionNode.ToNode">
+            <summary>
+            The <see cref="T:NeoAnimLib.AnimNode"/> that is being transitioned towards.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.TransitionNode.Blend">
+            <summary>
+            The percentage along which this transition has gone from
+            <see cref="P:NeoAnimLib.Nodes.TransitionNode.FromNode"/> towards <see cref="P:NeoAnimLib.Nodes.TransitionNode.ToNode"/>.
+            Will be automatically incremented when <see cref="M:NeoAnimLib.AnimNode.Step(System.Single)"/> is called
+            <b>iff</b> <see cref="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration"/> is not null.
+            Increasing this to 1 or more is considered an end condition, which will cause the end behaviour to be triggered the next time Step is called.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration">
+            <summary>
+            The transition duration, in seconds (affected by <see cref="P:NeoAnimLib.AnimNode.Speed"/>),
+            that this transition will last for. i.e. it will take <see cref="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration"/> seconds to increment
+            <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> from 0 to 1.
+            The assigned value cannot be less than 0.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.TransitionNode.EndBehaviour">
+            <summary>
+            The behaviour which occurs when the end of the transition it met.
+            Note: manually changing <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> will not trigger the end event,
+            only <see cref="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration"/> can be set to trigger the end.
+            </summary>
+        </member>
+        <member name="E:NeoAnimLib.Nodes.TransitionNode.OnTransitionEnd">
+            <summary>
+            The event raised when the end of the transition is reached, at which point the behaviour described in
+            <see cref="P:NeoAnimLib.Nodes.TransitionNode.EndBehaviour"/> is triggered after this event is raised.
+            Note: manually changing <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> will not trigger the end event,
+            only <see cref="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration"/> can be set to trigger the end.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.#ctor(NeoAnimLib.IAnimClip,NeoAnimLib.IAnimClip)">
+            <summary>
+            Creates a new transition node based on two clips.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.#ctor(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)">
+            <summary>
+            Creates a new transition node based on two nodes.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.#ctor">
+            <summary>
+            Creates an empty transition node.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.Add(NeoAnimLib.AnimNode)">
+            <summary>
+            Not supported on <see cref="T:NeoAnimLib.Nodes.TransitionNode"/>: it will throw an exception.
+            Use <see cref="M:NeoAnimLib.Nodes.TransitionNode.Replace(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)"/> instead.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.Remove(NeoAnimLib.AnimNode)">
+            <summary>
+            Removes the specified child node from this transition and immediately replaces it with a <see cref="T:NeoAnimLib.Nodes.ClipAnimNode"/> that has a
+            <see cref="T:NeoAnimLib.Clips.SnapshotAnimClip"/> based on the node that is being removed.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.Insert(System.Int32,NeoAnimLib.AnimNode)">
+            <summary>
+            Not supported on <see cref="T:NeoAnimLib.Nodes.TransitionNode"/>: it will throw an exception.
+            Use <see cref="M:NeoAnimLib.Nodes.TransitionNode.Replace(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)"/> or <see cref="M:NeoAnimLib.Nodes.TransitionNode.Remove(NeoAnimLib.AnimNode)"/> instead.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.Replace(NeoAnimLib.AnimNode,NeoAnimLib.AnimNode)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.Sample(NeoAnimLib.SamplerInput)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.LocalStep(System.Single)">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.Stop">
+            <summary>
+            Immediately stops this transition node, raises the <see cref="E:NeoAnimLib.Nodes.TransitionNode.OnTransitionEnd"/> event and triggers the behaviour described in
+            <see cref="P:NeoAnimLib.Nodes.TransitionNode.EndBehaviour"/>.
+            Does nothing if the transition is already ended (<see cref="P:NeoAnimLib.AnimNode.IsEnded"/>).
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.TryPerformEndBehaviour">
+            <summary>
+            Performs the end behaviour described by <see cref="P:NeoAnimLib.Nodes.TransitionNode.EndBehaviour"/>.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.UpdateTransitioning(System.Single)">
+            <summary>
+            Increments <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> based on the values of
+            <see cref="P:NeoAnimLib.Nodes.TransitionNode.TransitionDuration"/>.
+            If both durations are null, then this method does nothing.
+            <see cref="P:NeoAnimLib.Nodes.TransitionNode.Blend"/> will not be incremented over 1 by this method.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.RegisterEndEvent(System.Action{NeoAnimLib.AnimNode})">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.UnRegisterEndEvent(System.Action{NeoAnimLib.AnimNode})">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.GetTimeToEnd">
+            <inheritdoc/>
+        </member>
+        <member name="M:NeoAnimLib.Nodes.TransitionNode.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:NeoAnimLib.Nodes.TransitionOptions">
+            <summary>
+            Options that can be set when calling <see cref="M:NeoAnimLib.AnimNode.TransitionTo(NeoAnimLib.AnimNode,System.Single,NeoAnimLib.Nodes.TransitionOptions@)"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.Nodes.TransitionOptions.SyncTime">
+            <summary>
+            If true, the <see cref="P:NeoAnimLib.AnimNode.LocalTime"/> and <see cref="P:NeoAnimLib.AnimNode.LocalSpeed"/>
+            of the target node are set to match the existing node.
+            </summary>
+        </member>
+        <member name="T:NeoAnimLib.SamplerInput">
+            <summary>
+            A collection of options that can be used to customize the output
+            returned from <see cref="M:NeoAnimLib.AnimNode.Sample(NeoAnimLib.SamplerInput)"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.SamplerInput.DefaultValueSource">
+            <summary>
+            Provides a source for property values if they are missing.
+            Only required when using <see cref="F:NeoAnimLib.MissingPropertyBehaviour.UseDefaultValue"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.SamplerInput.MissingPropertyBehaviour">
+            <summary>
+            Defines how property values are obtained if/when properties are present in one sample but not in another.
+            Only used in certain nodes such as <see cref="T:NeoAnimLib.Nodes.MixAnimNode"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.SamplerInput.Channel">
+            <summary>
+            A generic channel value. This could be used to output different values from your implementation of <see cref="T:NeoAnimLib.IAnimClip"/>.
+            Does nothing within the main library.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.SamplerInput.UserData">
+            <summary>
+            A generic user object, to be used as you see fit (such as to pass a value into <see cref="M:NeoAnimLib.IAnimClip.Sample(NeoAnimLib.AnimSample,System.Single,NeoAnimLib.SamplerInput@)"/>).
+            See also: <seealso cref="M:NeoAnimLib.SamplerInput.GetUserData``1"/>.
+            </summary>
+        </member>
+        <member name="P:NeoAnimLib.SamplerInput.Node">
+            <summary>
+            The <see cref="T:NeoAnimLib.AnimNode"/> that this sample is being done for.
+            May be null.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.SamplerInput.GetUserData``1">
+            <summary>
+            Gets the value of <see cref="P:NeoAnimLib.SamplerInput.UserData"/> cast to <typeparamref name="T"/>.
+            This is equivalent to <c>(T)SamplerInput.UserObject</c>, so it will throw an exception if the type does not match.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.SamplerInput.GetAnimNodeUserData``1">
+            <summary>
+            Assumes that <see cref="P:NeoAnimLib.SamplerInput.Node"/> is a <see cref="T:NeoAnimLib.Nodes.ClipAnimNode`1"/> and returns the value of
+            <see cref="F:NeoAnimLib.Nodes.ClipAnimNode`1.UserData"/>. If <see cref="P:NeoAnimLib.SamplerInput.Node"/> is null or not of the correct type,
+            this will throw an exception.
+            See <see cref="M:NeoAnimLib.SamplerInput.TryGetAnimNodeUserData``1(``0@)"/> for a safer version of this method.
+            </summary>
+        </member>
+        <member name="M:NeoAnimLib.SamplerInput.TryGetAnimNodeUserData``1(``0@)">
+            <summary>
+            Assumes that <see cref="P:NeoAnimLib.SamplerInput.Node"/> is a <see cref="T:NeoAnimLib.Nodes.ClipAnimNode`1"/> and outputs the value of
+            <see cref="F:NeoAnimLib.Nodes.ClipAnimNode`1.UserData"/>.
+            Returns true if successful, false if <see cref="P:NeoAnimLib.SamplerInput.Node"/> is null or of the wrong type.
+            See <see cref="M:NeoAnimLib.SamplerInput.GetAnimNodeUserData``1"/> for a faster but unsafe version of this method.
+            </summary>
+        </member>
+    </members>
+</doc>
