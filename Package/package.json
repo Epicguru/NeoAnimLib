@@ -1,13 +1,10 @@
 {
     "name": "co.uk.epicguru.neoanim",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "displayName": "Animation Framework",
-    "description": "This is an example package",
+    "description": "Animation backend framework",
     "unity": "2019.1",
     "unityRelease": "0b5",
-    "documentationUrl": "https://example.com/",
-    "changelogUrl": "https://example.com/changelog.html",
-    "licensesUrl": "https://example.com/licensing.html",
     "author": {
       "name": "James",
       "email": "james@epicguru.co.uk"
